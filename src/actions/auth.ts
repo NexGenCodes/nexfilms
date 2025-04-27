@@ -12,7 +12,7 @@ import {
   deleteVerificationToken,
   comparePasswords, // Import comparePasswords
 } from "@/lib/db"
-import { sendVerificationEmail } from "@/lib/email"
+import { sendVerificationEmail } from "@/email/email"
 
 // Schema for login
 export const loginSchema = z.object({

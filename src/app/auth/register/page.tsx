@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useFormState } from "react-dom"
-import { registerUser } from "@/lib/actions/auth"
+import { registerUser } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

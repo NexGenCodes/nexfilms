@@ -1,29 +1,34 @@
-import type { DefaultSession, DefaultUser } from "next-auth"
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { Session } from "next-auth";
+import { JWT } from "next-auth/jwt";
+import NextAuth, { type DefaultSession } from "next-auth";
+import { NextRequest } from "next/server";
+
+declare module "next/server" {
+  interface NextRequest {
+    auth?: Session | null; // For session-based auth
+    // auth?: JWT | null; // Uncomment if using JWT instead
+  }
+}
 
 declare module "next-auth" {
-  /**
-   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-   */
   interface Session {
     user: {
-      id: string
-      role: string
-    } & DefaultSession["user"]
-  }
-
-  /**
-   * The shape of the user object returned in the OAuth providers' `profile` callback,
-   * or the second parameter of the `session` callback, when using a database.
-   */
-  interface User extends DefaultUser {
-    role?: string
+      role: "USER" | "ADMIN";
+    } & DefaultSession["user"];
   }
 }
 
-declare module "next-auth/jwt" {
-  /** Returned by the `jwt` callback and `getToken`, when using JWT sessions */
-  interface JWT {
-    id?: string
-    role?: string
-  }
-}
+export const { auth, handlers } = NextAuth({
+  callbacks: {
+    session({ session, token, user }) {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          address: user.address,
+        },
+      };
+    },
+  },
+});

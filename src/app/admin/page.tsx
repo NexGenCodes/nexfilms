@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { addContent, deleteContentItem, getStats } from "@/lib/actions/admin"
+import { addContent, deleteContentItem, getStats } from "@/actions/admin"
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview")

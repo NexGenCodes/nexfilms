@@ -1,39 +1,46 @@
-import { NextResponse } from "next/server"
-import { getToken } from "next-auth/jwt"
-import { withAuth } from "next-auth/middleware"
+import { NextRequest, NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import authConfig from "@/auth.config";
 
-export default withAuth(
-  async function middleware(req) {
-    const token = await getToken({ req, secret: process.env.AUTH_SECRET })
-    const isAuth = !!token
-    const isAdmin = token?.role === "ADMIN"
-    const isAuthPage = req.nextUrl.pathname.startsWith("/login") || req.nextUrl.pathname.startsWith("/register")
-    const isAdminPage = req.nextUrl.pathname.startsWith("/admin")
+const { auth } = NextAuth(authConfig);
 
-    // Redirect unauthenticated users from admin pages to login
-    if (isAdminPage && !isAuth) {
-      return NextResponse.redirect(new URL("/login", req.url))
-    }
+const publicRoutes = ["/auth/login", "/auth/register", "/auth/otp"];
+const protectedRoutes = ["/admin", "/profile"];
 
-    // Redirect non-admin users from admin pages
-    if (isAdminPage && !isAdmin) {
-      return NextResponse.redirect(new URL("/", req.url))
-    }
+export default auth(async (req: NextRequest) => {
+  const path = req.nextUrl.pathname;
+  const isLoggedIn = !!req.auth;
+  const isAdmin = req.auth?.user.role === "ADMIN";
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    path.startsWith(route)
+  );
+  const isPublicRoute = publicRoutes.some((route) => path.startsWith(route));
+  const redirects = {
+    public: "/admin",
+    protected: "/auth/login",
+    signup: "/auth/register",
+  };
 
-    // Redirect authenticated users from auth pages to home
-    if (isAuthPage && isAuth) {
-      return NextResponse.redirect(new URL("/", req.url))
-    }
+  // Redirect unauthenticated users from admin pages to login
+  if (isPublicRoute && !isLoggedIn) {
+    return NextResponse.redirect(new URL(redirects.public, req.nextUrl));
+  }
 
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
-  },
-)
+  // Redirect non-admin users from admin pages
+  if (isProtectedRoute && !isAdmin) {
+    return NextResponse.redirect(new URL(redirects.protected, req.nextUrl));
+  }
+
+  // Redirect authenticated users from auth pages to home
+  if (isPublicRoute && isLoggedIn) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  return NextResponse.next();
+});
 
 export const config = {
-  matcher: ["/admin/:path*", "/login", "/register", "/profile/:path*"],
-}
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon\\..*|sitemap.xml|robots.txt).*)",
+  ],
+};

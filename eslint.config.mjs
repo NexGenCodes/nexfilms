@@ -11,6 +11,7 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.plugins("react", "react-hooks", "@next/next"),
 ];
 
 export default eslintConfig;

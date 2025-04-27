@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation"
 import { useFormState } from "react-dom"
-import { verifyOtp } from "@/lib/actions/auth"
+import { verifyOtp } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
