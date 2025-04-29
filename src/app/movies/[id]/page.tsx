@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getMovieById } from "@/lib/mockData";
+import { getMovieById } from "@/lib/db";
 
 type Params = Promise<{ id: string } | undefined>;
+
 
 export default async function MoviePage(props: { params: Params }) {
   const params = await props.params;
@@ -16,9 +17,6 @@ export default async function MoviePage(props: { params: Params }) {
   const movie = await getMovieById(params?.id);
 
   if (!movie) {
-    notFound();
-  }
-  if (movie.type !== "movie") {
     notFound();
   }
 

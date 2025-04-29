@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getSeriesById } from "@/lib/mockData";
+import { getSeriesById } from "@/lib/db";
 
 type Params = Promise<{ id: string } | undefined>;
 
@@ -15,8 +15,6 @@ export default async function Page(props: { params: Params }) {
   const series = await getSeriesById(params.id);
 
   if (!series) notFound();
-
-  if (series.type !== "series") notFound();
 
   return (
     <div className="container mx-auto py-6">
@@ -48,7 +46,7 @@ export default async function Page(props: { params: Params }) {
               </Badge>
             </div>
             <div className="flex flex-wrap gap-2">
-              {series.genres.map((genre) => (
+              {series.genres.split(",").map((genre) => (
                 <Badge key={genre} variant="secondary">
                   {genre}
                 </Badge>

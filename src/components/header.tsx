@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme/toggle";
 import { UserNav } from "@/components/nav";
-import { SITE_NAME } from "@/constants";
+import { SITE_NAME, SITE_SHORT_URL } from "@/constants";
 
 export function AppHeader() {
   return (
@@ -16,7 +16,7 @@ export function AppHeader() {
         <SidebarTrigger />
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="hidden md:inline-flex">{SITE_NAME}</span>
-          <span className="inline-flex md:hidden">NF</span>
+          <span className="inline-flex md:hidden">{SITE_SHORT_URL}</span>
         </Link>
       </div>
       <div className="ml-auto flex items-center gap-4">

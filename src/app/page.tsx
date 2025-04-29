@@ -1,83 +1,24 @@
-"use client";
+import { getContentByTab } from "@/actions/getContentTab";
+import HomePage from "@/components/homePage";
+import { CONTENT_CATEGORIES, SITE_NAME } from "@/constants";
+import { ContentTab } from "@/types";
+import { Suspense } from "react";
 
-import { useState } from "react";
-import { ContentCard } from "@/components/content-card";
-import { Pagination } from "@/components/pagination";
-import { ContentTabs } from "@/components/tabs";
-import { CONTENT_CATEGORIES, DEFAULT_PAGE_SIZE, SITE_NAME } from "@/constants";
-import {
-  getNewReleases,
-  getRecommendedContent,
-  getTrendingContent,
-} from "@/lib/mockData";
+const defaultTab: ContentTab = "trending";
+const tabLabel =
+  CONTENT_CATEGORIES.find((c) => c.id === defaultTab)?.label || "Content";
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState("trending");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = DEFAULT_PAGE_SIZE;
+export const metadata = {
+  title: `Explore ${tabLabel} on ${SITE_NAME}`,
+  description: `Discover the latest ${tabLabel.toLowerCase()} movies, series, and animations on ${SITE_NAME}.`,
+};
 
-  // Get content based on active tab
-  const getContentByTab = (tab: string) => {
-    switch (tab) {
-      case "trending":
-        return getTrendingContent();
-      case "new":
-        return getNewReleases();
-      case "recommended":
-        return getRecommendedContent();
-      default:
-        return getTrendingContent();
-    }
-  };
-
-  // Get current content based on active tab and pagination
-  const getCurrentContent = () => {
-    const content = getContentByTab(activeTab);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return content.slice(startIndex, startIndex + itemsPerPage);
-  };
-
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    setCurrentPage(1); // Reset to first page when changing tabs
-  };
-
-  // Render content for each tab
-  const renderTabContent = () => (
-    <div className="mt-6">
-      <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(200px,1fr))] my-4">
-        {getCurrentContent().map((item) => (
-          <ContentCard key={item.id} content={item} />
-        ))}
-      </div>
-      <Pagination
-        onPageChange={setCurrentPage}
-        length={getContentByTab(activeTab).length}
-      />
-    </div>
-  );
+export default async function Page() {
+  const initialContent = await getContentByTab(defaultTab);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight capitalize">
-          Welcome to {SITE_NAME}!
-        </h1>
-        <p className="text-muted-foreground">
-          Your one-stop destination for movies, series, and animations.
-        </p>
-      </div>
-
-      <ContentTabs
-        tabs={CONTENT_CATEGORIES.map((category) => ({
-          id: category.id,
-          label: category.label,
-          content: renderTabContent(),
-        }))}
-        defaultTab="trending"
-        onTabChange={handleTabChange}
-      />
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomePage initialContent={initialContent} initialTab={defaultTab} />
+    </Suspense>
   );
 }

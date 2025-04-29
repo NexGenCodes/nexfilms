@@ -1,8 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Session } from "next-auth";
-import { JWT } from "next-auth/jwt";
-import NextAuth, { type DefaultSession } from "next-auth";
-import { NextRequest } from "next/server";
+import { type DefaultSession } from "next-auth";
 
 declare module "next/server" {
   interface NextRequest {
@@ -14,21 +10,19 @@ declare module "next/server" {
 declare module "next-auth" {
   interface Session {
     user: {
+      id: string;
       role: "USER" | "ADMIN";
     } & DefaultSession["user"];
   }
+
+  interface User extends DefaultUser {
+    role?: "USER" | "ADMIN";
+  }
 }
 
-export const { auth, handlers } = NextAuth({
-  callbacks: {
-    session({ session, token, user }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          address: user.address,
-        },
-      };
-    },
-  },
-});
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    role?: "USER" | "ADMIN";
+  }
+}

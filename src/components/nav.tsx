@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useSession, signOut } from "next-auth/react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,28 +11,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function UserNav() {
-  const { data: session } = useSession()
-  const user = session?.user
+  const { data: session } = useSession();
+  const user = session?.user;
+  console.log(user);
 
   if (!user) {
     return (
       <div className="flex items-center gap-2 ">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/login"
-          >Sign in</Link>
+          <Link href="/auth/login">Sign in</Link>
         </Button>
-        <Button 
-        size={"sm"}
-        asChild>
-          <Link href="/register"
-          >Sign up</Link>
+        <Button size={"sm"} asChild>
+          <Link href="/auth/register">Sign up</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -49,7 +46,9 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -73,13 +72,13 @@ export function UserNav() {
         <DropdownMenuItem
           className="cursor-pointer"
           onSelect={(event) => {
-            event.preventDefault()
-            signOut({ callbackUrl: "/" })
+            event.preventDefault();
+            signOut({ callbackUrl: "/" });
           }}
         >
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

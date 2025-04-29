@@ -7,6 +7,7 @@ export default {
       name: "Credentials",
       authorize: async (credentials) => {
         if (Object.keys(credentials).length === 0) return null;
+        console.log(credentials);
         return credentials;
       },
     }),
@@ -21,8 +22,8 @@ export default {
     signIn: "/auth/login",
     newUser: "/auth/register",
   },
+  session: {
+    strategy: "jwt",
+  },
   secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig;
-
-
-

@@ -16,7 +16,15 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/t/p/**",
       },
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+        port: "",
+        pathname: "/**",
+      },
     ],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   webpack(config) {
     config.module.rules.push({

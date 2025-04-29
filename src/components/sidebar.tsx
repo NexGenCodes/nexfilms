@@ -34,7 +34,7 @@ export function AppSidebar() {
               asChild
             >
               <Link href="/">
-                <div className="flex aspect-square size-6 items-center justify-center rounded-lg text-primary-foreground">
+                <div className="flex aspect-square size-6 items-center justify-center rounded-lg text-primary-foreground p-4">
                   <GalleryVerticalEnd className="size-8" />
                 </div>
                 <div className="flex flex-col gap-0.5 ">

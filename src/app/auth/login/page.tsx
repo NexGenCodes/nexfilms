@@ -5,17 +5,25 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
 import { z } from "zod"
-import { loginSchema } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useAuth } from "@/lib/auth/auth-hooks"
+import { findUserByEmail, verifyPassword, createMockToken } from "@/lib/auth/mock-auth"
+import { VALIDATION_MESSAGES } from "@/lib/constants"
+
+// Login form schema
+const loginSchema = z.object({
+  email: z.string().email({ message: VALIDATION_MESSAGES.EMAIL_INVALID }),
+  password: z.string().min(8, { message: VALIDATION_MESSAGES.PASSWORD_MIN }),
+})
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
 
@@ -32,18 +40,45 @@ export default function LoginPage() {
       // Validate form data
       loginSchema.parse({ email, password })
 
-      // Sign in
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
+      // Find user by email (mock authentication)
+      const user = findUserByEmail(email)
 
-      if (result?.error) {
-        setError(result.error === "Email not verified" ? "Please verify your email first" : "Invalid email or password")
+      if (!user) {
+        setError("Invalid email or password")
         setIsPending(false)
         return
       }
+
+      // Verify password
+      const isPasswordValid = verifyPassword(password, user.password)
+
+      if (!isPasswordValid) {
+        setError("Invalid email or password")
+        setIsPending(false)
+        return
+      }
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        setError("Email not verified")
+        setIsPending(false)
+        return
+      }
+
+      // Create user session
+      const userSession = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        image: user.imageUrl,
+      }
+
+      // Create mock token
+      const token = createMockToken(user)
+
+      // Login successful
+      login(userSession, token)
 
       // Redirect to home page
       router.push("/")

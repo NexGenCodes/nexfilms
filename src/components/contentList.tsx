@@ -1,12 +1,12 @@
 "use client";
 
-import { Content, Series } from "@/lib/mockData";
 import { Sorting } from "./sorting";
 import { ContentCard } from "./content-card";
-import { Pagination } from "./pagination";
+import { Movie } from "@prisma/client";
+import Pagination from "./pagination";
 
 interface Props {
-  items: (Content | Series)[];
+  items: Movie[];
   totalItems: number;
   name: "movies" | "series" | "animations";
 }

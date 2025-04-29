@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { updateProfile, updatePassword } from "@/actions/auth"
+import { updateProfile, updatePassword } from "@/lib/actions/auth"
 
 export default function ProfilePage() {
   const { data: session } = useSession()

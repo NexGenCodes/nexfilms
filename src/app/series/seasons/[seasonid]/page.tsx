@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getSeasonById, getSeriesById } from "@/lib/mockData";
+import { getSeasonById, getSeriesById } from "@/lib/db";
 
 type Params = Promise<{ id: string; seasonId: string } | undefined>;
 
@@ -12,7 +12,7 @@ export default async function Page(props: { params: Params }) {
   const params = await props.params;
   if (!params?.id) notFound();
   const series = await getSeriesById(params.id);
-  const season = await getSeasonById(params.id, params.seasonId);
+  const season = await getSeasonById(params.seasonId);
 
   if (!series || !season) {
     notFound();

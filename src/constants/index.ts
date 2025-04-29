@@ -61,20 +61,9 @@ export const CONTENT_TYPES = {
   SERIES: "series",
 };
 
-// User roles
-export const USER_ROLES = {
-  USER: "user",
-  ADMIN: "admin",
-};
-
 // Pagination
 export const DEFAULT_PAGE_SIZE = 16;
 export const DEFAULT_PAGE = 1;
-
-// Authentication
-export const AUTH_TOKEN_NAME = "entertainment_auth_token";
-export const AUTH_USER_NAME = "entertainment_user";
-export const TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Content categories for tabs
 export const CONTENT_CATEGORIES = [

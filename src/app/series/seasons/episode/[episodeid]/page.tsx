@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getEpisodeById, getSeasonById, getSeriesById } from "@/lib/mockData";
+import { getEpisodeById, getSeasonById, getSeriesById } from "@/lib/db";
 
 type Params = Promise<
   { id: string; seasonId: string; episodeId: string } | undefined
@@ -14,12 +14,8 @@ export default async function Page(props: { params: Params }) {
   const params = await props.params;
   if (!params?.id) notFound();
   const series = await getSeriesById(params.id);
-  const season = await getSeasonById(params.id, params.seasonId);
-  const episode = await getEpisodeById(
-    params.id,
-    params.seasonId,
-    params.episodeId
-  );
+  const season = await getSeasonById(params.seasonId);
+  const episode = await getEpisodeById(params.episodeId);
 
   if (!series || !season || !episode) {
     notFound();
@@ -69,10 +65,10 @@ export default async function Page(props: { params: Params }) {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold">
-                {episode.episodeNumber}. {episode.title}
+                {episode.episodeNumber} {episode.title}
               </h1>
               <Badge variant="outline" className="ml-2">
-                {episode.duration}
+                {episode.duration} min
               </Badge>
             </div>
             <div className="flex flex-wrap gap-2">
