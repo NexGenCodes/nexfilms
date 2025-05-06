@@ -1,11 +1,15 @@
 // Application constants
 
 // Site information
-export const SITE_NAME = "nexfilms";
+export const SITE_NAME = "Nexfilms";
 export const SITE_SHORT_URL = "NF";
 export const SITE_DESCRIPTION =
   "Your entertainment hub for movies, series, and animations";
 export const SITE_URL = "https://entertainment-hub.vercel.app";
+export const OTP_EXPIRATION = 300;
+export const TIMER_DURATION = 100;
+export const OTP_LENGTH = 6;
+export const RATE_LIMIT = 60;
 
 // Navigation
 export const NAV_ITEMS = [
@@ -28,6 +32,11 @@ export const NAV_ITEMS = [
     title: "Series",
     href: "/series",
     icon: "Tv",
+  },
+  {
+    title: "Admin",
+    href: "/admin",
+    icon: "LayoutDashboard",
   },
 ];
 

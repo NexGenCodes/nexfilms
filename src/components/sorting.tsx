@@ -1,6 +1,6 @@
 "use client";
 
-import debounce, { cn } from "@/lib/utils";
+import { cn, debounce } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
 import { FC, memo, useCallback } from "react";
@@ -16,13 +16,12 @@ export const Sorting: FC<SortingProps> = memo(({ className = "" }) => {
 
   const currentSortOrder = searchParams.get("sortOrder") || "asc";
 
-  const updateUrl = useCallback(
-    debounce((params: URLSearchParams) => {
-      window.location.href = `?${params.toString()}`;
-    }, 300),
-
-    []
-  );
+  const updateUrl = useCallback((params: URLSearchParams) => {
+    debounce(() => {
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.location.href = newUrl; // Reload the page with the new URL
+    }, 300)();
+  }, []);
 
   const handleSortOrderChange = useCallback(
     (sortOrder: SortOder) => {

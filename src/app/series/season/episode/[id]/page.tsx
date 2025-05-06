@@ -1,39 +1,37 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getEpisodeById, getSeasonById, getSeriesById } from "@/lib/db";
+import BackHandler from "@/components/backHandler";
+import DownloadHandler from "@/components/downloadHandler";
+import { StarIcon } from "lucide-react";
 
-type Params = Promise<
-  { id: string; seasonId: string; episodeId: string } | undefined
->;
+type Params = Promise<{ id: string } | undefined>;
 
 export default async function Page(props: { params: Params }) {
   const params = await props.params;
   if (!params?.id) notFound();
-  const series = await getSeriesById(params.id);
-  const season = await getSeasonById(params.seasonId);
-  const episode = await getEpisodeById(params.episodeId);
+  const episode = await getEpisodeById(params.id);
+  const season = await getSeasonById(episode.seasonId);
+  const series = await getSeriesById(season.movieId);
 
-  if (!series || !season || !episode) {
+  if (!episode || !season || !series) {
     notFound();
   }
 
   return (
     <div className="container mx-auto py-6">
-      <Button variant="ghost" asChild className="mb-6">
-        <Link href={`/series/${params.id}/season/${params.seasonId}`}>
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Back to {season.title}
-        </Link>
-      </Button>
+      <BackHandler />
 
-      <div className="grid gap-6 md:grid-cols-[300px_1fr] lg:gap-12">
+      <div
+        className="grid gap-6 sm:grid-cols-2 md:grid-cols-[1fr_1fr] 
+      lg:gap-12 lg:grid-cols-[400px_1fr] "
+      >
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black md:aspect-[2/3]">
           <Image
-            src={episode.thumbnailUrl || "/placeholder.svg"}
+            src={episode.thumbnailUrl}
             alt={episode.title}
             fill
             className="object-cover"
@@ -65,10 +63,11 @@ export default async function Page(props: { params: Params }) {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold">
-                {episode.episodeNumber} {episode.title}
+                {episode.episodeNumber}. {episode.title}
               </h1>
               <Badge variant="outline" className="ml-2">
-                {episode.duration} min
+                {episode.duration}{" "}
+                <span className="text-muted-foreground ml-1">mins</span>
               </Badge>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -76,66 +75,36 @@ export default async function Page(props: { params: Params }) {
               <Badge variant="secondary">{season.title}</Badge>
               <Badge className="bg-green-500">Episode</Badge>
             </div>
-            <div className="text-amber-500 text-lg">{series.rating}</div>
+            <div className="text-amber-500 text-lg flex items-center gap-1 justify-center my-4">
+              {series.rating}
+              <StarIcon className="h-4 w-4 mt-[2px]" />
+            </div>
           </div>
+
+          <DownloadHandler movieId={episode.id} type={series.type} />
 
           <div className="pt-4">
             <h2 className="text-xl font-semibold mb-2">Synopsis</h2>
             <p className="text-muted-foreground">{episode.description}</p>
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <Button>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-2 h-4 w-4"
-              >
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-              Watch Now
-            </Button>
-            <Button variant="outline">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-2 h-4 w-4"
-              >
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
-              </svg>
-              Add to Watchlist
-            </Button>
           </div>
         </div>
       </div>
 
       <div className="mt-12">
         <h2 className="text-2xl font-bold mb-4">More Episodes</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(150px,1fr))] ">
           {season.episodes
             .filter((ep) => ep.id !== episode.id)
             .slice(0, 6)
             .map((ep) => (
               <Link
                 key={ep.id}
-                href={`/series/${params.id}/season/${params.seasonId}/episode/${ep.id}`}
+                href={`/series/season/episode/${ep.id}`}
                 className="group"
               >
                 <div className="relative aspect-video w-full overflow-hidden rounded-md mb-2">
                   <Image
-                    src={ep.thumbnailUrl || "/placeholder.svg"}
+                    src={ep.thumbnailUrl}
                     alt={ep.title}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"

@@ -17,8 +17,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export function UserNav() {
   const { data: session } = useSession();
   const user = session?.user;
-  console.log(user);
-
   if (!user) {
     return (
       <div className="flex items-center gap-2 ">

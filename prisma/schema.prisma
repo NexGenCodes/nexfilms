@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
 }
 
 datasource db {
@@ -23,75 +17,142 @@ enum ContentType {
   SERIES
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  password      String
-  image         String?
-  role          UserRole  @default(USER)
-  bio           String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+enum WatchlistStatus {
+  PLANNED
+  WATCHING
+  COMPLETED
+}
 
-  watchlist Watchlist[]
+enum VideoQualityType {
+  Q240P
+  Q480P
+  Q720P
+  Q1080P
+}
+
+model Genre {
+  id          String       @id @default(cuid())
+  name        String       @unique @db.VarChar(50)
+  movieGenres MovieGenre[]
+
+  @@index([name])
+}
+
+model VideoQuality {
+  id        String           @id @default(cuid())
+  episodeId String?          // Optional for Episode relation
+  movieId   String?          // Optional for Movie relation
+  quality   VideoQualityType
+  url       String           @db.VarChar(2048)
+  episode   Episode?         @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  movie     Movie?           @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, quality], map: "unique_episode_quality")
+  @@unique([movieId, quality], map: "unique_movie_quality")
+  @@index([episodeId, quality])
+  @@index([movieId, quality])
+  // Enforce exactly one of episodeId or movieId non-null in DB constraint
+}
+
+model Watchlist {
+  id      String          @id @default(cuid())
+  userId  String
+  movieId String
+  addedAt DateTime        @default(now())
+  status  WatchlistStatus @default(PLANNED)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Movie   Movie           @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId, status])
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String?     @db.VarChar(255)
+  email         String      @unique @db.VarChar(255)
+  emailVerified DateTime?
+  password      String      @db.VarChar(255)
+  image         String?     @db.VarChar(2048)
+  role          UserRole    @default(USER)
+  bio           String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+  watchlist     Watchlist[]
+
+  @@index([role])
+  @@index([email])
 }
 
 model Movie {
-  id          String      @id @default(cuid())
-  title       String
-  type        ContentType
-  isAnimation Boolean
-  posterUrl   String
-  backdropUrl String
-  year        String
-  releaseDate DateTime
-  rating      Float 
-  genres      String[]
-  description String
-  duration    Int
-  trailerUrl  String?
-  videoUrl    String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  seasons     Season[]
-  watchlist   Watchlist[]
+  id             String         @id @default(cuid())
+  title          String         @db.VarChar(255)
+  type           ContentType
+  isAnimation    Boolean
+  posterUrl      String         @db.VarChar(2048)
+  backdropUrl    String         @db.VarChar(2048)
+  year           String         @db.VarChar(4)
+  releaseDate    DateTime
+  rating         Float          @db.Real // 0-5, enforced by DB constraint
+  description    String         @db.Text
+  duration       Int            @db.SmallInt
+  trailerUrl     String?        @db.VarChar(2048)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+  seasons        Season[]       // Only for type: SERIES, enforce in DB constraint
+  watchlist      Watchlist[]
+  movieGenres    MovieGenre[]
+  videoQualities VideoQuality[] // Only for type: MOVIES, enforce in DB constraint
+
+  @@index([title, type, releaseDate])
+}
+
+model MovieGenre {
+  movieId String @db.VarChar
+  genreId String @db.VarChar
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+  @@index([movieId])
+  @@index([genreId])
 }
 
 model Season {
   id           String    @id @default(cuid())
-  seasonNumber Int
-  title        String
-  posterUrl    String
-  episodes     Episode[]
-  Movie        Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  movieId      String
-  overview     String?
+  seasonNumber Int       @db.SmallInt
+  title        String    @db.VarChar(255)
+  posterUrl    String    @db.VarChar(2048)
+  overview     String?   @db.Text
   releaseDate  DateTime
+  movieId      String    @db.VarChar
+  Movie        Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  episodes     Episode[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([movieId, seasonNumber])
 }
 
 model Episode {
-  id            String   @id @default(cuid())
-  episodeNumber Int
-  title         String
-  description   String
-  duration      Int
-  thumbnailUrl  String
-  videoUrl      String
-  releaseDate   DateTime
-  seasonId      String
-  trailerUrl    String
-  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-}
+  id             String         @id @default(cuid())
+  episodeNumber  Int            @db.SmallInt
+  title          String         @db.VarChar(255)
+  description    String         @db.Text
+  duration       Int            @db.SmallInt
+  thumbnailUrl   String         @db.VarChar(2048)
+  rating         Float          @db.Real // 0-5, enforced by DB constraint
+  releaseDate    DateTime
+  seasonId       String
+  trailerUrl     String         @db.VarChar(2048)
+  season         Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  videoQualities VideoQuality[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
 
-model Watchlist {
-  id      String   @id @default(cuid())
-  userId  String
-  addedAt DateTime @default(now())
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Movie   Movie    @relation(fields: [movieId], references: [id])
-  movieId String
-
-  @@unique([userId, movieId])
+  @@index([seasonId, episodeNumber])
 }

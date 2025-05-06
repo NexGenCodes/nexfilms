@@ -3,10 +3,19 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Movie } from "@prisma/client";
+import { Genre } from "@prisma/client";
 
 interface ContentCardProps {
-  content: Movie;
+  content: {
+    id: string;
+    title: string;
+    type: string;
+    year: string;
+    rating: number;
+    description: string;
+    genres: Genre[];
+    posterUrl: string;
+  };
 }
 
 export function ContentCard({ content }: ContentCardProps) {
@@ -39,10 +48,10 @@ export function ContentCard({ content }: ContentCardProps) {
             <div className="flex flex-wrap gap-1 mt-2">
               {content.genres.map((genre) => (
                 <Badge
-                  key={genre}
+                  key={genre.id}
                   className="dark:bg-neutral-800 text-xs bg-neutral-200 text-muted-foreground"
                 >
-                  {genre}
+                  {genre.name}
                 </Badge>
               ))}
             </div>

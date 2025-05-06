@@ -63,7 +63,17 @@ export default async function Series(props: { searchParams: SearchParams }) {
       </Head>
       <Suspense fallback={<div>Loading...</div>}>
         <div className="space-y-6">
-          <ContentList items={items} totalItems={totalItems} name="series" />
+          <ContentList
+            items={items.map((item) => ({
+              ...item,
+              genres: item.movieGenres.map((item) => ({
+                id: item.genre.id,
+                name: item.genre.name,
+              })),
+            }))}
+            totalItems={totalItems}
+            name="series"
+          />
         </div>
       </Suspense>
     </>

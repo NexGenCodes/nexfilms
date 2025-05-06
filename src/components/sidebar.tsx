@@ -14,34 +14,46 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { GalleryVerticalEnd } from "lucide-react";
 import { cn, getIconByName } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { UserRole } from "@prisma/client";
+import Image from "next/image";
+import logo from "@/assets/COLOURED/MAIN.png";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const isAdmin = user?.role === UserRole.ADMIN;
+
   const isActive = (href: string) => {
-    return href === pathname;
+    if (href === "/") {
+      return pathname === "/";
+    }
+    return pathname.startsWith(href);
   };
+
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="hover:bg-none hover:text-none"
-              asChild
-            >
+            <SidebarMenuButton size="lg" className="hover:bg-primary/50" asChild>
               <Link href="/">
-                <div className="flex aspect-square size-6 items-center justify-center rounded-lg text-primary-foreground p-4">
-                  <GalleryVerticalEnd className="size-8" />
+                <div className="flex aspect-square items-center justify-center">
+                  <Image
+                    src={logo}
+                    priority
+                    alt="Logo"
+                    className="size-8"
+                    width={32}
+                    height={32}
+                  />
                 </div>
-                <div className="flex flex-col gap-0.5 ">
-                  <span className="font-semibold uppercase text-2xl">
-                    {SITE_NAME}
-                  </span>
-                  <span className="text-xs text-muted-foreground leading-none">
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span className="font-bold text-primary text-xl leading-none capitalize ">{SITE_NAME}</span>
+                  <span className="text-xs text-muted-foreground leading-none ">
                     Your entertainment center
                   </span>
                 </div>
@@ -50,14 +62,16 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="my-4">
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_ITEMS.map((item) => {
+                if (item.href === "/admin" && !isAdmin) {
+                  return null;
+                }
                 const Icon = getIconByName(item.icon);
-
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
