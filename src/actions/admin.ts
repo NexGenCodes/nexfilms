@@ -1,121 +1,164 @@
-"use server"
+"use server";
 
-import { z } from "zod"
-import { revalidatePath } from "next/cache"
-import { createContent, updateContent, deleteContent, type ContentType, getContentStats } from "@/lib/db"
+import { revalidatePath } from "next/cache";
+import {
+  createContent,
+  updateContent,
+  deleteContent,
+  getContentStats,
+} from "@/lib/db";
+import { contentSchema } from "@/types/content";
+import { ContentType } from "@prisma/client";
 
-// Schema for content creation/update
-export const contentSchema = z.object({
-  title: z.string().min(2, { message: "Title must be at least 2 characters" }),
-  description: z.string().min(10, { message: "Description must be at least 10 characters" }),
-  type: z.enum(["MOVIE", "SERIES", "ANIMATION"], {
-    message: "Type must be one of: MOVIE, SERIES, ANIMATION",
-  }),
-  posterUrl: z
-    .string()
-    .url({ message: "Poster URL must be a valid URL" })
-    .or(z.string().startsWith("/", { message: "Poster URL must be a valid URL or path" })),
-  year: z.string().regex(/^\d{4}$/, { message: "Year must be a 4-digit number" }),
-  rating: z.string(),
-  genres: z.array(z.string()).min(1, { message: "At least one genre is required" }),
-})
+interface ContentErrors {
+  title?: string[];
+  description?: string[];
+  type?: string[];
+  posterUrl?: string[];
+  rating?: string[];
+  genres?: string[];
+  isAnimation?: string[];
+  releaseDate?: string[];
+  duration?: string[];
+  userId?: string[];
+}
+
+interface UpdateContent {
+  error?: string;
+  success?: string;
+  errors?: ContentErrors;
+}
+
+interface AddContent {
+  error?: string;
+  success?: string;
+  errors?: ContentErrors;
+}
+
+type FormState = UpdateContent | undefined;
+type FormState2 = AddContent | undefined;
 
 export async function getStats() {
   try {
-    const stats = await getContentStats()
-    return { stats, error: null }
+    const stats = await getContentStats();
+    return { stats, error: null };
   } catch (error) {
-    return { stats: null, error: "Failed to fetch statistics" }
+    console.error("Error fetching statistics:", error);
+    return { stats: null, error: "Failed to fetch statistics" };
   }
 }
 
-export async function addContent(prevState: any, formData: FormData) {
-  try {
-    // Parse genres from comma-separated string
-    const genresString = formData.get("genres") as string
-    const genres = genresString
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean)
+export async function addContent(
+  state: FormState2,
+  formData: FormData
+): Promise<FormState2> {
+  const genresString = formData.get("genres") as string;
+  const genres = genresString
+    .split(",")
+    .map((g) => g.trim())
+    .filter(Boolean);
+  // Validate form data
+  const validatedFields = contentSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    type: formData.get("type"),
+    posterUrl:
+      formData.get("posterUrl") ||
+      "https://placehold.co/500x750/red/white?text=Placeholder",
+    rating: formData.get("rating") || "4.5",
+    genres: genres,
+    isAnimation: formData.get("isAnimation"),
+    releaseDate: formData.get("releaseDate"),
+    duration: parseInt(formData.get("duration") as string, 10),
+    backdropUrl: formData.get("backdropUrl"),
+  });
 
-    // Validate form data
-    const validatedFields = contentSchema.parse({
-      title: formData.get("title"),
-      description: formData.get("description"),
-      type: formData.get("type"),
-      posterUrl:
-        formData.get("posterUrl") ||
-        `/placeholder.svg?height=450&width=300&text=${encodeURIComponent(formData.get("title") as string)}`,
-      year: formData.get("year"),
-      rating: formData.get("rating") || "★★★☆☆",
-      genres,
-    })
-
-    // Create content
-    await createContent({
-      ...validatedFields,
-      type: validatedFields.type as unknown as ContentType,
-    })
-
-    revalidatePath("/admin")
-    return { success: "Content added successfully" }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { error: error.errors[0].message }
-    }
-    return { error: "Something went wrong. Please try again." }
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors };
   }
+
+  const {
+    title,
+    description,
+    type,
+    posterUrl,
+    rating,
+    isAnimation = false,
+    releaseDate,
+    duration,
+  } = validatedFields.data;
+
+  // Create content
+  await createContent({
+    title,
+    description,
+    type: type as unknown as ContentType,
+    posterUrl,
+    rating: parseFloat(rating),
+    isAnimation: isAnimation,
+    backdropUrl: "",
+    releaseDate: releaseDate,
+    duration: duration,
+  });
+
+  revalidatePath("/admin");
+  return { success: "Content added successfully" };
 }
 
-export async function updateContentItem(id: string, prevState: any, formData: FormData) {
-  try {
-    // Parse genres from comma-separated string
-    const genresString = formData.get("genres") as string
-    const genres = genresString
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean)
+export async function updateContentItem(
+  state: FormState,
+  formData: FormData
+): Promise<FormState> {
+  // Parse genres from comma-separated string
+  const genresString = formData.get("genres") as string;
+  const genres = genresString
+    .split(",")
+    .map((g) => g.trim())
+    .filter(Boolean);
+  // Validate form data
 
-    // Validate form data
-    const validatedFields = contentSchema.parse({
-      title: formData.get("title"),
-      description: formData.get("description"),
-      type: formData.get("type"),
-      posterUrl:
-        formData.get("posterUrl") ||
-        `/placeholder.svg?height=450&width=300&text=${encodeURIComponent(formData.get("title") as string)}`,
-      year: formData.get("year"),
-      rating: formData.get("rating") || "★★★☆☆",
-      genres,
-    })
+  const validatedFields = contentSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    type: formData.get("type"),
+    posterUrl:
+      formData.get("posterUrl") ||
+      "https://placehold.co/500x750/red/white?text=Placeholder",
+    rating: formData.get("rating") || "4.5",
+    genres: genres,
+    isAnimation: formData.get("isAnimation"),
+    releaseDate: formData.get("releaseDate"),
+    duration: parseInt(formData.get("duration") as string, 10),
+    backdropUrl: formData.get("backdropUrl"),
+    userId: formData.get("userId"),
+  });
 
-    // Update content
-    await updateContent(id, {
-      ...validatedFields,
-      type: validatedFields.type as unknown as ContentType,
-    })
-
-    revalidatePath("/admin")
-    return { success: "Content updated successfully" }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { error: error.errors[0].message }
-    }
-    return { error: "Something went wrong. Please try again." }
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
   }
+
+  // Update content
+  await updateContent(validatedFields.data.userId, {
+    ...validatedFields.data,
+    type: validatedFields.data.type as unknown as ContentType,
+    rating: parseFloat(validatedFields.data.rating),
+  });
+
+  revalidatePath("/admin");
+  return {
+    success: "Content updated successfully",
+  };
 }
 
 export async function deleteContentItem(id: string) {
-  try {
-    const result = await deleteContent(id)
+  const result = await deleteContent(id);
 
-    if (!result) {
-      return { error: "Content not found" }
-    }
-
-    revalidatePath("/admin")
-    return { success: "Content deleted successfully" }
-  } catch (error) {
-    return { error: "Failed to delete content" }
+  if (!result) {
+    return { error: "Content not found" };
   }
+
+  revalidatePath("/admin");
+  return { success: "Content deleted successfully" };
 }

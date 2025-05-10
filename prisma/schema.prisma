@@ -1,5 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -30,28 +30,20 @@ enum VideoQualityType {
   Q1080P
 }
 
-model Genre {
-  id          String       @id @default(cuid())
-  name        String       @unique @db.VarChar(50)
-  movieGenres MovieGenre[]
-
-  @@index([name])
-}
-
 model VideoQuality {
   id        String           @id @default(cuid())
-  episodeId String?          // Optional for Episode relation
-  movieId   String?          // Optional for Movie relation
+  episodeId String? // Optional for Episode relation
+  movieId   String? // Optional for Movie relation
   quality   VideoQualityType
   url       String           @db.VarChar(2048)
   episode   Episode?         @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   movie     Movie?           @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  // Enforce exactly one of episodeId or movieId non-null in DB constraint
 
   @@unique([episodeId, quality], map: "unique_episode_quality")
   @@unique([movieId, quality], map: "unique_movie_quality")
   @@index([episodeId, quality])
   @@index([movieId, quality])
-  // Enforce exactly one of episodeId or movieId non-null in DB constraint
 }
 
 model Watchlist {
@@ -89,10 +81,9 @@ model Movie {
   id             String         @id @default(cuid())
   title          String         @db.VarChar(255)
   type           ContentType
-  isAnimation    Boolean
+  isAnimation    Boolean        @default(false)
   posterUrl      String         @db.VarChar(2048)
   backdropUrl    String         @db.VarChar(2048)
-  year           String         @db.VarChar(4)
   releaseDate    DateTime
   rating         Float          @db.Real // 0-5, enforced by DB constraint
   description    String         @db.Text
@@ -101,23 +92,12 @@ model Movie {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
-  seasons        Season[]       // Only for type: SERIES, enforce in DB constraint
+  seasons        Season[] // Only for type: SERIES, enforce in DB constraint
   watchlist      Watchlist[]
-  movieGenres    MovieGenre[]
+  genres    String[]
   videoQualities VideoQuality[] // Only for type: MOVIES, enforce in DB constraint
 
   @@index([title, type, releaseDate])
-}
-
-model MovieGenre {
-  movieId String @db.VarChar
-  genreId String @db.VarChar
-  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
-
-  @@id([movieId, genreId])
-  @@index([movieId])
-  @@index([genreId])
 }
 
 model Season {

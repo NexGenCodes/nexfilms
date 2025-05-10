@@ -1,26 +1,16 @@
 "use client";
 
 import { CONTENT_CATEGORIES } from "@/constants";
-import { Genre } from "@prisma/client";
 import { useEffect, useState, useTransition } from "react";
 import { ContentTabs } from "./tabs";
 import { ContentCard } from "./content-card";
 import { ContentTab } from "@/types";
 import { getContentByTab } from "@/actions/getContentTab";
-
-interface Items {
-  id: string;
-  title: string;
-  type: string;
-  year: string;
-  rating: number;
-  description: string;
-  genres: Genre[];
-  posterUrl: string;
-}
+import { Movie } from "@prisma/client";
+import LoadingSpinner from "./spinner";
 
 interface Content {
-  items: Items[];
+  items: Movie[];
   totalItems: number;
 }
 
@@ -37,13 +27,7 @@ export default function HomePage({ initialTab }: Props) {
     startTransition(async () => {
       const result = await getContentByTab(initialTab);
       setContent({
-        items: result.items.map((item) => ({
-          ...item,
-          genres: item.movieGenres.map((item) => ({
-            id: item.genre.id,
-            name: item.genre.name,
-          })),
-        })),
+        items: result.items,
         totalItems: result.totalItems,
       });
     });
@@ -55,13 +39,7 @@ export default function HomePage({ initialTab }: Props) {
     startTransition(async () => {
       const result = await getContentByTab(value);
       setContent({
-        items: result.items.map((item) => ({
-          ...item,
-          genres: item.movieGenres.map((item) => ({
-            id: item.genre.id,
-            name: item.genre.name,
-          })),
-        })),
+        items: result.items,
         totalItems: result.totalItems,
       });
     });
@@ -88,9 +66,7 @@ export default function HomePage({ initialTab }: Props) {
         id: category.id,
         label: category.label,
         content: isPending ? (
-          <div className="flex items-center justify-center mt-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary "></div>
-          </div>
+          <LoadingSpinner className="mt-20" />
         ) : (
           renderTabContent()
         ),

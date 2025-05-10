@@ -25,7 +25,6 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
-  const isAdmin = user?.role === UserRole.ADMIN;
 
   const isActive = (href: string) => {
     if (href === "/") {
@@ -39,7 +38,11 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="hover:bg-primary/50" asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="hover:bg-primary/50"
+              asChild
+            >
               <Link href="/">
                 <div className="flex aspect-square items-center justify-center">
                   <Image
@@ -52,7 +55,9 @@ export function AppSidebar() {
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-bold text-primary text-xl leading-none capitalize ">{SITE_NAME}</span>
+                  <span className="font-bold text-primary text-xl leading-none capitalize ">
+                    {SITE_NAME}
+                  </span>
                   <span className="text-xs text-muted-foreground leading-none ">
                     Your entertainment center
                   </span>
@@ -68,7 +73,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_ITEMS.map((item) => {
-                if (item.href === "/admin" && !isAdmin) {
+                if (item.href === "/admin" && user?.role !== UserRole.ADMIN) {
                   return null;
                 }
                 const Icon = getIconByName(item.icon);

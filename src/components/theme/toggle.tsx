@@ -1,14 +1,19 @@
 "use client";
-import { Moon, Sun, Laptop } from "lucide-react";
-import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import { Moon, Sun, Laptop } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+
+const Separator = () => (
+  <DropdownMenuSeparator className="border-t border-gray-500/55 my-2" />
+);
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -22,7 +27,7 @@ export function ThemeToggle() {
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="center">
+      <DropdownMenuContent align="center" className="p-2 w-40">
         <DropdownMenuItem
           onClick={() => setTheme("light")}
           className={theme === "light" ? "bg-primary/50" : ""}
@@ -30,6 +35,7 @@ export function ThemeToggle() {
           <Sun className="mr-2 h-4 w-4" />
           <span>Light</span>
         </DropdownMenuItem>
+        <Separator />
         <DropdownMenuItem
           onClick={() => setTheme("dark")}
           className={theme === "dark" ? "bg-primary/50" : ""}
@@ -37,6 +43,7 @@ export function ThemeToggle() {
           <Moon className="mr-2 h-4 w-4" />
           <span>Dark</span>
         </DropdownMenuItem>
+        <Separator />
         <DropdownMenuItem
           onClick={() => setTheme("system")}
           className={theme === "system" ? "bg-primary/50" : ""}

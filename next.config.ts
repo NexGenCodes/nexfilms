@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -33,6 +34,24 @@ const nextConfig: NextConfig = {
     });
     return config;
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
+    optimizePackageImports: [
+      "lucide-react",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+    ],
+  },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
 };
 
-export default nextConfig;
+// Add bundle analyzer in analyze mode
+export default process.env.ANALYZE === "true"
+  ? withBundleAnalyzer({
+      enabled: true,
+    })(nextConfig)
+  : nextConfig;

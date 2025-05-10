@@ -19,7 +19,9 @@ export default function CustomInput({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={type}>{name}</Label>
+      <Label htmlFor={type} className="capitalize">
+        {name}
+      </Label>
       <Input
         id={name}
         name={name}
@@ -28,7 +30,7 @@ export default function CustomInput({
         required
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="border border-gray-400 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+        className="border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary py-5" 
       />
 
       {errors &&

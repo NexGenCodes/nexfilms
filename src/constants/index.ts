@@ -97,6 +97,7 @@ export const PROFILE_TABS = [
   { id: "watchlist", label: "Watchlist" },
 ];
 
+
 // Form validation messages
 export const VALIDATION_MESSAGES = {
   REQUIRED: "This field is required",

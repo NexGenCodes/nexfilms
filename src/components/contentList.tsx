@@ -2,20 +2,11 @@
 
 import { Sorting } from "./sorting";
 import { ContentCard } from "./content-card";
-import { Genre } from "@prisma/client";
+import { Movie } from "@prisma/client";
 import Pagination from "./pagination";
 
 interface Props {
-  items: {
-    id: string;
-    title: string;
-    type: string;
-    year: string;
-    rating: number;
-    description: string;
-    genres: Genre[];
-    posterUrl: string;
-  }[];
+  items: Movie[];
   totalItems: number;
   name: "movies" | "series" | "animations";
 }

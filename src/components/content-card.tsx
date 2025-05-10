@@ -3,26 +3,17 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Genre } from "@prisma/client";
+import { Movie } from "@prisma/client";
 
 interface ContentCardProps {
-  content: {
-    id: string;
-    title: string;
-    type: string;
-    year: string;
-    rating: number;
-    description: string;
-    genres: Genre[];
-    posterUrl: string;
-  };
+  content: Movie;
 }
 
 export function ContentCard({ content }: ContentCardProps) {
   if (!content) return null;
   return (
     <Link href={`/${content.type.toLowerCase()}/${content.id}`}>
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/20 hover:shadow-primary/5 hover:-translate-y-1">
+      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/20 hover:scale-105 rounded-lg ">
         <div className="relative aspect-[2/3] w-full overflow-hidden">
           <Image
             src={content.posterUrl}
@@ -34,7 +25,7 @@ export function ContentCard({ content }: ContentCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           <Badge
             className={cn(
-              "absolute top-2 right-2 text-xs font-medium text-white rounded-full px-2 py-1 hover:none capitalize",
+              "absolute top-2 right-2 text-xs font-medium text-white rounded-full capitalize",
               content.type === "MOVIES" && "bg-green-500",
               content.type === "SERIES" && "bg-blue-500"
             )}
@@ -46,19 +37,23 @@ export function ContentCard({ content }: ContentCardProps) {
           <h3 className="font-semibold line-clamp-1">{content.title}</h3>
           {content.genres.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {content.genres.map((genre) => (
+              {content.genres.map((genre, index) => (
                 <Badge
-                  key={genre.id}
+                  key={index}
                   className="dark:bg-neutral-800 text-xs bg-neutral-200 text-muted-foreground"
                 >
-                  {genre.name}
+                  {genre}
                 </Badge>
               ))}
             </div>
           )}
           <p className="flex items-center justify-between mt-2">
             <span className="text-sm text-muted-foreground ">
-              {content.year}
+              {content.releaseDate.toLocaleDateString("en-US", {
+                year: "2-digit",
+                month: "2-digit",
+                day: "2-digit",
+              })}
             </span>
             <span className="text-amber-500 text-sm">{content.rating}</span>
           </p>

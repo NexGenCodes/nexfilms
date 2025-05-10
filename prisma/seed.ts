@@ -16,7 +16,6 @@ interface ContentSeed {
   title: string;
   type: ContentType;
   isAnimation: boolean;
-  genres: string[];
 }
 
 interface SeedResult {
@@ -55,9 +54,19 @@ const generateRating = (): number => {
   return Math.min(parseFloat((whole + decimal).toFixed(1)), 5); // Enforce 0–5
 };
 
-const generateYear = (): string => `${2015 + Math.floor(Math.random() * 10)}`;
-
-const generateReleaseDate = (year: string): Date => new Date(`${year}-01-01`);
+const generateReleaseDate = (): Date => {
+  const startYear = 2000;
+  const endYear = new Date().getFullYear();
+  const randomYear =
+    Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
+  const randomMonth = Math.floor(Math.random() * 12) + 1;
+  const randomDay = Math.floor(Math.random() * 28) + 1; // To avoid invalid dates
+  return new Date(
+    `${randomYear}-${String(randomMonth).padStart(2, "0")}-${String(
+      randomDay
+    ).padStart(2, "0")}`
+  );
+};
 
 const generateImageUrl = (
   type: "poster" | "backdrop" | "season-poster" | "episode-thumbnail",
@@ -103,32 +112,7 @@ const generateVideoQualities = (movieId?: string, episodeId?: string) => {
   }));
 };
 
-// Seeding Functions
-async function seedGenres(): Promise<void> {
-  try {
-    const allGenres = Array.from(
-      new Set([...genrePool.nonAnimated, ...genrePool.animated])
-    );
-    await prisma.genre.createMany({
-      data: allGenres.map((name) => ({
-        id: nanoid(),
-        name,
-      })),
-      skipDuplicates: true,
-    });
-    const createdGenres = await prisma.genre.findMany({
-      select: { name: true },
-    });
-    console.log(
-      "Genres seeded successfully:",
-      createdGenres.map((g) => g.name).join(", ")
-    );
-  } catch (error) {
-    throw new Error(`Failed to seed genres: ${error}`);
-  }
-}
-
-async function seedUsers(): Promise<void> {
+async function seedUsers() {
   try {
     const users: UserSeed[] = [
       {
@@ -172,26 +156,10 @@ async function seedUsers(): Promise<void> {
   }
 }
 
-async function seedContent(
-  contents: ContentSeed[],
-  name: string
-): Promise<void> {
+async function seedContent(contents: ContentSeed[], name: string) {
   try {
-    // Fetch all genres and create a lookup map
-    const allGenres = await prisma.genre.findMany({
-      select: { id: true, name: true },
-    });
-    const genreMap = new Map(allGenres.map((g) => [g.name, g.id]));
-    const missingGenres = contents
-      .flatMap((c) => c.genres)
-      .filter((g) => !genreMap.has(g));
-    if (missingGenres.length > 0) {
-      throw new Error(`Missing genres: ${missingGenres.join(", ")}`);
-    }
-
     // Prepare movie data
     const movieData = contents.map((content) => {
-      const year = generateYear();
       return {
         id: content.id,
         title: content.title,
@@ -203,13 +171,13 @@ async function seedContent(
           content.isAnimation,
           content.title
         ),
+        genres: generateGenres(content.isAnimation),
         backdropUrl: generateImageUrl(
           "backdrop",
           content.isAnimation,
           content.title
         ),
-        year,
-        releaseDate: generateReleaseDate(year),
+        releaseDate: generateReleaseDate(),
         rating: generateRating(),
         duration:
           content.type === ContentType.MOVIES
@@ -222,14 +190,6 @@ async function seedContent(
       };
     });
 
-    // Prepare related data
-    const movieGenreData = contents.flatMap((content) =>
-      content.genres.map((genre) => ({
-        movieId: content.id,
-        genreId: genreMap.get(genre)!,
-      }))
-    );
-
     const videoQualityData = contents
       .filter((content) => content.type === ContentType.MOVIES)
       .flatMap((content) => generateVideoQualities(content.id));
@@ -240,10 +200,7 @@ async function seedContent(
         data: movieData,
         skipDuplicates: true,
       }),
-      prisma.movieGenre.createMany({
-        data: movieGenreData,
-        skipDuplicates: true,
-      }),
+
       prisma.videoQuality.createMany({
         data: videoQualityData,
         skipDuplicates: true,
@@ -351,7 +308,6 @@ const generateMovies = (count: number): ContentSeed[] =>
     title: `Movie Title ${i + 1}`,
     type: ContentType.MOVIES,
     isAnimation: false,
-    genres: generateGenres(false),
   }));
 
 const generateSeries = (count: number): ContentSeed[] =>
@@ -360,7 +316,6 @@ const generateSeries = (count: number): ContentSeed[] =>
     title: `Series Title ${i + 1}`,
     type: ContentType.SERIES,
     isAnimation: false,
-    genres: generateGenres(false),
   }));
 
 const generateAnimationMovies = (count: number): ContentSeed[] =>
@@ -369,7 +324,6 @@ const generateAnimationMovies = (count: number): ContentSeed[] =>
     title: `Animation Title ${i + 1}`,
     type: ContentType.MOVIES,
     isAnimation: true,
-    genres: generateGenres(true),
   }));
 
 const generateAnimationSeries = (count: number): ContentSeed[] =>
@@ -378,7 +332,6 @@ const generateAnimationSeries = (count: number): ContentSeed[] =>
     title: `Animation Series ${i + 1}`,
     type: ContentType.SERIES,
     isAnimation: true,
-    genres: generateGenres(true),
   }));
 
 async function main() {
@@ -387,15 +340,10 @@ async function main() {
   // Generate content
   const movies = generateMovies(20);
   const series = generateSeries(15);
-  const animationMovies = generateAnimationMovies(5);
-  const animationSeries = generateAnimationSeries(5);
+  const animationMovies = generateAnimationMovies(10);
+  const animationSeries = generateAnimationSeries(10);
 
   // Seed dependencies sequentially
-  const genreResult = await executeWithRetry("Genres", seedGenres);
-  if (genreResult.status === "Failed") {
-    console.error("Genre seeding failed, aborting:", genreResult.reason);
-    process.exit(1);
-  }
 
   const userResult = await executeWithRetry("Users", seedUsers);
   if (userResult.status === "Failed") {
@@ -438,12 +386,7 @@ async function main() {
   const watchlistResult = await executeWithRetry("Watchlist", seedWatchlist);
 
   // Final report
-  const allResults = [
-    genreResult,
-    userResult,
-    ...contentResults,
-    watchlistResult,
-  ];
+  const allResults = [userResult, watchlistResult, ...contentResults];
   console.log("\nFinal Seeding Report:");
   allResults.forEach((r) => {
     console.log(`${r.name}: ${r.status}${r.reason ? ` - ${r.reason}` : ""}`);

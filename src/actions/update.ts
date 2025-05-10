@@ -87,10 +87,7 @@ export async function updatePassword(_state: FormState, formData: FormData) {
   return { success: true, error: "Password updated successfully" };
 }
 
-export default async function updateProfile(
-  _state: FormState2,
-  formData: FormData
-) {
+export async function updateProfile(_state: FormState2, formData: FormData) {
   const validatedFields = profileUpdateSchema.safeParse({
     name: formData.get("name"),
     bio: formData.get("bio"),

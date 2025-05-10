@@ -13,18 +13,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils";
+
+const Separator = () => (
+  <DropdownMenuSeparator className="border-t border-gray-500/55 my-2" />
+);
 
 export function UserNav() {
   const { data: session } = useSession();
   const user = session?.user;
+
   if (!user) {
     return (
       <div className="flex items-center gap-2 ">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/auth/login">Sign in</Link>
+          <Link href="/login">Sign in</Link>
         </Button>
         <Button size={"sm"} asChild>
-          <Link href="/auth/register">Sign up</Link>
+          <Link href="/register">Sign up</Link>
         </Button>
       </div>
     );
@@ -36,39 +42,40 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.image || ""} alt={user.name || ""} />
-            <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
+            <AvatarFallback>
+              {getInitials(user?.name || undefined)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
+      <DropdownMenuContent className="p-2 w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal px-4 py-2">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none text-foreground">
+              {user.name}
+            </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <Separator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/profile">Profile</Link>
           </DropdownMenuItem>
+          <Separator />
           <DropdownMenuItem asChild>
             <Link href="/profile?tab=watchlist">Watchlist</Link>
           </DropdownMenuItem>
+          <Separator />
           <DropdownMenuItem asChild>
             <Link href="/profile?tab=settings">Settings</Link>
           </DropdownMenuItem>
-          {user.role === "ADMIN" && (
-            <DropdownMenuItem asChild>
-              <Link href="/admin">Admin Dashboard</Link>
-            </DropdownMenuItem>
-          )}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
+        <Separator />
         <DropdownMenuItem
-          className="cursor-pointer"
+          className="cursor-pointer text-red-500 font-md font-bold hover:text-foreground"
           onSelect={(event) => {
             event.preventDefault();
             signOut({ callbackUrl: "/" });
