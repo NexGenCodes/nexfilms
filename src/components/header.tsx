@@ -1,43 +1,59 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme/toggle";
-import { UserNav } from "@/components/nav";
 import { SITE_NAME, SITE_SHORT_URL } from "@/constants";
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { useSidebar } from "./ui/sidebar";
+import { Search } from "./search";
 
 export function AppHeader() {
+  const [scrolled, setScrolled] = useState(false);
+  const { toggleSidebar } = useSidebar();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-background px-4 md:px-6 ">
-      <div className="flex items-center gap-4 md:gap-6">
-        <SidebarTrigger />
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="hidden md:inline-flex">{SITE_NAME}</span>
-          <span className="inline-flex md:hidden">{SITE_SHORT_URL}</span>
-        </Link>
-      </div>
-      <div className="ml-auto flex items-center gap-4">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="lg:w-96 rounded-full bg-muted pl-8 w-auto"
-          />
+    <header
+      className={cn(
+        "sticky top-0 z-10 h-16 px-2 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200",
+        scrolled ? "border-border shadow-sm" : "border-border"
+      )}
+    >
+      <div className="flex items-center gap-4 md:gap-6 ">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleSidebar()}
+            className="lg:hidden hover:bg-green-500/10 hover:text-green-500 transition-colors"
+          >
+            <Menu className="size-6" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Search className="h-5 w-5" />
-          <span className="sr-only">Search</span>
-        </Button>
-
-        {/* Theme toggle dropdown */}
-        <ThemeToggle />
-
-        {/* User navigation */}
-        <UserNav />
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-semibold text-lg text-primary"
+        >
+          <span className="hidden sm:block capitalize">{SITE_NAME}</span>
+          <span className="inline-flex sm:hidden capitalize">
+            {SITE_SHORT_URL}
+          </span>
+        </Link>
+        <div className="ml-auto flex items-center gap-4">
+          <Search />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

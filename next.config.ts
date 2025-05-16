@@ -27,13 +27,7 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  webpack(config) {
-    config.module.rules.push({
-      test: /\.ejs$/,
-      use: "raw-loader",
-    });
-    return config;
-  },
+
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",

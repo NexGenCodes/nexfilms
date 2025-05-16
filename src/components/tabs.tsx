@@ -4,6 +4,7 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 
 export interface Tab {
   id: string;
@@ -68,7 +69,13 @@ export function ContentTabs({
           value={tab.id}
           className={tabsContentClassName}
         >
-          {renderTabContent ? renderTabContent(tab) : tab.content}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {renderTabContent ? renderTabContent(tab) : tab.content}
+          </motion.div>
         </TabsContent>
       ))}
     </Tabs>

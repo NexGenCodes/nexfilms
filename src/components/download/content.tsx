@@ -1,75 +1,82 @@
+"use client";
+import { motion } from "framer-motion";
 import BackHandler from "../backHandler";
-import Image from "next/image";
-import { Badge } from "../ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Download } from "lucide-react";
+import { VideoQuality } from "@prisma/client";
 
 interface Props {
   content: {
-    type: "MOVIES" | "SERIES";
-    posterUrl: string;
     title: string;
-    releaseDate: Date;
-    genres: string[];
-    rating: number;
-    description: string;
+    videoQualities: VideoQuality[];
   };
 }
 
 export default function DownloadContent({ content }: Props) {
-  const getTypeColor = () => {
-    switch (content.type) {
-      case "MOVIES":
-        return "bg-blue-500 text-white";
-      case "SERIES":
-        return "bg-green-500 text-white";
-      default:
-        return "bg-gray-500 text-white";
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <BackHandler />
-      <div
-        className="grid gap-6 sm:grid-cols-2 md:grid-cols-[1fr_1fr] 
-      lg:gap-12 lg:grid-cols-[400px_1fr] "
-      >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
-          <Image
-            src={content.posterUrl}
-            alt={content.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 200px"
-            priority
-          />
-        </div>
-
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold mb-2">{content.title}</h1>
-
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Badge variant="outline">
-              {content.releaseDate.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-              })}
-            </Badge>
-            <Badge variant="outline" className={getTypeColor()}>
-              {content.type}
-            </Badge>
-            {content.genres.map((genre, index) => (
-              <Badge key={index} variant="secondary">
-                {genre}
-              </Badge>
-            ))}
-          </div>
-
-          <div className="text-amber-500 text-lg mb-4">{content.rating}</div>
-
-          <p className="text-muted-foreground">{content.description}</p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <BackHandler />
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-2xl mx-auto"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl text-green-500">
+              Download {content.title}
+            </CardTitle>
+            <CardDescription>
+              Choose your preferred download option
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {content.videoQualities.map((videoQuality, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="border border-border rounded-lg p-4 flex justify-between items-center hover:border-green-500/30 hover:bg-green-500/5 transition-colors"
+              >
+                <div>
+                  <h3 className="font-medium">
+                    {videoQuality.quality.split("Q")[1]}
+                  </h3>
+                  {/* <p className="text-sm text-muted-foreground">
+                    File size: 2.1 GB
+                  </p> */}
+                </div>
+                <Button className="bg-green-600 hover:bg-green-700">
+                  <Download className="mr-2 h-4 w-4" /> Download
+                </Button>
+              </motion.div>
+            ))}
+          </CardContent>
+          <CardFooter className="flex flex-col items-start">
+            {/* <p className="text-sm text-muted-foreground mb-2">
+              <FileDown className="inline h-4 w-4 mr-1" /> All downloads are
+              secured and encrypted
+            </p> */}
+            <p className="text-xs text-muted-foreground">
+              By downloading, you agree to our terms and conditions. For
+              personal use only.
+            </p>
+          </CardFooter>
+        </Card>
+      </motion.div>
     </div>
   );
 }

@@ -7,20 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  USER
-  ADMIN
-}
-
 enum ContentType {
   MOVIES
   SERIES
-}
-
-enum WatchlistStatus {
-  PLANNED
-  WATCHING
-  COMPLETED
 }
 
 enum VideoQualityType {
@@ -28,6 +17,20 @@ enum VideoQualityType {
   Q480P
   Q720P
   Q1080P
+}
+
+enum PgRating {
+  G
+  PG
+  PG_13
+  R
+  NC_17
+  TV_Y
+  TV_Y7
+  TV_G
+  TV_PG
+  TV_14
+  TV_MA
 }
 
 model VideoQuality {
@@ -46,93 +49,102 @@ model VideoQuality {
   @@index([movieId, quality])
 }
 
-model Watchlist {
-  id      String          @id @default(cuid())
-  userId  String
-  movieId String
-  addedAt DateTime        @default(now())
-  status  WatchlistStatus @default(PLANNED)
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Movie   Movie           @relation(fields: [movieId], references: [id], onDelete: Cascade)
+model Content {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @db.Text
+  releaseDate DateTime
+  director    String
+  duration    Int         @db.SmallInt // Use Int for duration
+  pgRating    PgRating // Use enum for pgRating
+  posterUrl   String
+  type        ContentType
+  isAnimation Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  backdropUrl String      @db.VarChar(2048)
 
-  @@unique([userId, movieId])
-  @@index([userId, status])
-}
-
-model User {
-  id            String      @id @default(cuid())
-  name          String?     @db.VarChar(255)
-  email         String      @unique @db.VarChar(255)
-  emailVerified DateTime?
-  password      String      @db.VarChar(255)
-  image         String?     @db.VarChar(2048)
-  role          UserRole    @default(USER)
-  bio           String?     @db.Text
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  deletedAt     DateTime?
-  watchlist     Watchlist[]
-
-  @@index([role])
-  @@index([email])
+  // Relations
+  cast   Cast[]         @relation("ContentCast")
+  genres GenreContent[] // Many-to-many relation with Genre
+  movie  Movie? // One-to-one relation with Movie
+  series Series? // One-to-one relation with Series
 }
 
 model Movie {
   id             String         @id @default(cuid())
-  title          String         @db.VarChar(255)
-  type           ContentType
-  isAnimation    Boolean        @default(false)
-  posterUrl      String         @db.VarChar(2048)
-  backdropUrl    String         @db.VarChar(2048)
-  releaseDate    DateTime
-  rating         Float          @db.Real // 0-5, enforced by DB constraint
-  description    String         @db.Text
-  duration       Int            @db.SmallInt
+  content        Content        @relation(fields: [id], references: [id], onDelete: Cascade)
+  videoQualities VideoQuality[]
+  rating         Float          @db.Real
   trailerUrl     String?        @db.VarChar(2048)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  deletedAt      DateTime?
-  seasons        Season[] // Only for type: SERIES, enforce in DB constraint
-  watchlist      Watchlist[]
-  genres    String[]
-  videoQualities VideoQuality[] // Only for type: MOVIES, enforce in DB constraint
+}
 
-  @@index([title, type, releaseDate])
+model Series {
+  id        String   @id
+  content   Content  @relation(fields: [id], references: [id], onDelete: Cascade)
+  seasons   Season[] // One-to-many relation with Season
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Season {
-  id           String    @id @default(cuid())
-  seasonNumber Int       @db.SmallInt
-  title        String    @db.VarChar(255)
-  posterUrl    String    @db.VarChar(2048)
-  overview     String?   @db.Text
-  releaseDate  DateTime
-  movieId      String    @db.VarChar
-  Movie        Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  episodes     Episode[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
-
-  @@index([movieId, seasonNumber])
+  id        String    @id @default(cuid())
+  seriesId  String
+  number    Int       @db.SmallInt
+  title     String    @db.VarChar(255)
+  posterUrl String    @db.VarChar(2048)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  series    Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes  Episode[]
 }
 
 model Episode {
   id             String         @id @default(cuid())
-  episodeNumber  Int            @db.SmallInt
+  number         Int            @db.SmallInt
   title          String         @db.VarChar(255)
   description    String         @db.Text
   duration       Int            @db.SmallInt
-  thumbnailUrl   String         @db.VarChar(2048)
+  posterUrl      String         @db.VarChar(2048)
   rating         Float          @db.Real // 0-5, enforced by DB constraint
-  releaseDate    DateTime
   seasonId       String
-  trailerUrl     String         @db.VarChar(2048)
+  trailerUrl     String?        @db.VarChar(2048)
   season         Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   videoQualities VideoQuality[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  deletedAt      DateTime?
+}
 
-  @@index([seasonId, episodeNumber])
+model Genre {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  contents GenreContent[] // Many-to-many relation with Content
+}
+
+model GenreContent {
+  contentId String
+  genreId   String
+
+  // Relations
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  genre   Genre   @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, genreId])
+}
+
+model Cast {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  contents Content[] @relation("ContentCast") // Many-to-many relation with Content
 }

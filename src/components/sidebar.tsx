@@ -14,17 +14,13 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { cn, getIconByName } from "@/lib/utils";
+import { getIconByName } from "@/lib/utils";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { UserRole } from "@prisma/client";
 import Image from "next/image";
 import logo from "@/assets/COLOURED/MAIN.png";
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const user = session?.user;
 
   const isActive = (href: string) => {
     if (href === "/") {
@@ -73,19 +69,13 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_ITEMS.map((item) => {
-                if (item.href === "/admin" && user?.role !== UserRole.ADMIN) {
-                  return null;
-                }
                 const Icon = getIconByName(item.icon);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       tooltip={item.title}
-                      className={cn(
-                        isActive(item.href) &&
-                          "bg-primary/50 text-primary-foreground "
-                      )}
+                      isActive={isActive(item.href)}
                     >
                       <Link href={item.href}>
                         <Icon className="size-4" />

@@ -4,13 +4,12 @@ import { CONTENT_CATEGORIES } from "@/constants";
 import { useEffect, useState, useTransition } from "react";
 import { ContentTabs } from "./tabs";
 import { ContentCard } from "./content-card";
-import { ContentTab } from "@/types";
 import { getContentByTab } from "@/actions/getContentTab";
-import { Movie } from "@prisma/client";
 import LoadingSpinner from "./spinner";
+import { ContentTab, ContentWithRelation } from "@/type";
 
-interface Content {
-  items: Movie[];
+interface ContentType {
+  items: ContentWithRelation[];
   totalItems: number;
 }
 
@@ -20,7 +19,7 @@ type Props = {
 
 export default function HomePage({ initialTab }: Props) {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [content, setContent] = useState<Content | null>(null);
+  const [content, setContent] = useState<ContentType | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {

@@ -1,24 +1,31 @@
-"server only";
+("server only");
 
-import { DEFAULT_PAGE_SIZE, OTP_EXPIRATION, OTP_LENGTH } from "@/constants";
+import { DEFAULT_PAGE_SIZE, CACHE_TTL } from "@/constants";
 import prisma from "./prisma";
-import { SortOrder } from "@/types";
-import { ContentType, Prisma, Movie, WatchlistStatus } from "@prisma/client";
 import { AppError } from "./appError";
+import { Prisma, ContentType } from "@prisma/client";
+import { ContentTabResult, SortOrder } from "@/type";
 
 // Constants
-const CACHE_TTL = OTP_EXPIRATION;
 const CACHE_TAGS = {
   MOVIES: "movies",
   SERIES: "series",
+  SEASONS: "seasons",
+  EPISODES: "episodes",
   ANIMATIONS: "animations",
   RECOMMENDED: "recommended",
   TRENDING: "trending",
   NEW_RELEASES: "new-releases",
   SIMILAR_MOVIES: "similar-movies",
-  USER_WATCHLIST: "user-watchlist",
-  USER_EMAIL: "user-email",
-  USER_ID: "user-id",
+  CONTENT: "content",
+};
+
+// Shared include object for content queries
+const contentInclude = {
+  movie: { select: { rating: true, trailerUrl: true } },
+  series: { include: { seasons: { select: { id: true, number: true } } } },
+  genres: { include: { genre: { select: { name: true, slug: true } } } },
+  cast: { select: { name: true } },
 };
 
 // Utility: Apply cache strategy
@@ -34,7 +41,7 @@ async function handleDatabaseOperation<T>(
   try {
     return await operation();
   } catch (error) {
-    console.error(errorMessage, error);
+    console.error(`${errorMessage}:`, error);
     throw new AppError(`${errorMessage}: ${(error as Error).message}`, 500);
   }
 }
@@ -43,9 +50,10 @@ async function handleDatabaseOperation<T>(
 async function fetchContent(
   page: number,
   sortOrder: SortOrder,
-  where: Prisma.MovieWhereInput,
+  where: Prisma.ContentWhereInput,
   cacheTag: string,
-  sortField: keyof Movie = "title"
+  includeMovie: boolean = false,
+  includeSeries: boolean = false
 ) {
   if (page < 1) throw new AppError("Page number must be positive", 400);
   if (!["asc", "desc"].includes(sortOrder))
@@ -55,15 +63,21 @@ async function fetchContent(
   const skip = (page - 1) * itemsPerPage;
 
   return handleDatabaseOperation(async () => {
+    const include = {
+      movie: includeMovie,
+      series: includeSeries && { include: { seasons: false } }, // Avoid deep nesting
+    };
+
     const [items, totalItems] = await Promise.all([
-      prisma.movie.findMany({
+      prisma.content.findMany({
         where,
         skip,
         take: itemsPerPage,
-        orderBy: { [sortField]: sortOrder },
+        orderBy: { title: sortOrder },
+        include,
         cacheStrategy: applyCacheStrategy([cacheTag]),
       }),
-      prisma.movie.count({
+      prisma.content.count({
         where,
         cacheStrategy: applyCacheStrategy([cacheTag], 3600),
       }),
@@ -78,7 +92,8 @@ export async function fetchMovies(page: number, sortOrder: SortOrder) {
     page,
     sortOrder,
     { type: ContentType.MOVIES },
-    CACHE_TAGS.MOVIES
+    CACHE_TAGS.MOVIES,
+    true // Include movie relation
   );
 }
 
@@ -88,7 +103,9 @@ export async function fetchSeries(page: number, sortOrder: SortOrder) {
     page,
     sortOrder,
     { type: ContentType.SERIES },
-    CACHE_TAGS.SERIES
+    CACHE_TAGS.SERIES,
+    false,
+    true // Include series relation
   );
 }
 
@@ -98,67 +115,103 @@ export async function fetchAnimations(page: number, sortOrder: SortOrder) {
     page,
     sortOrder,
     { isAnimation: true },
-    CACHE_TAGS.ANIMATIONS
+    CACHE_TAGS.ANIMATIONS,
+    true,
+    true
   );
 }
 
-// Fetch recommended content (high-rated)
-export async function getRecommended() {
-  const itemsPerPage = DEFAULT_PAGE_SIZE;
+// Function to get 16 recommendations
+export async function getRecommendations(): Promise<ContentTabResult> {
   return handleDatabaseOperation(async () => {
-    const [items, totalItems] = await Promise.all([
-      prisma.movie.findMany({
-        where: { rating: { gte: 4.0 } }, // Adjustable threshold
-        orderBy: [{ rating: "desc" }],
-        skip: Math.floor(Math.random() * itemsPerPage), // Random offset
-        take: itemsPerPage,
-        cacheStrategy: applyCacheStrategy([CACHE_TAGS.RECOMMENDED]),
-      }),
-      itemsPerPage,
-    ]);
-    return { items, totalItems };
-  }, "Failed to fetch recommended content");
+    const recommendations = await prisma.content.findMany({
+      orderBy: [{ releaseDate: "desc" }, { createdAt: "desc" }],
+      take: 16,
+      include: contentInclude,
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.RECOMMENDED]),
+    });
+
+    if (recommendations.length < 16) {
+      console.warn(
+        `Only ${recommendations.length} items available for recommendations.`
+      );
+    }
+
+    return { items: recommendations, totalItems: recommendations.length };
+  }, "Failed to fetch recommendations");
 }
 
 // Fetch trending content
-export async function getTrending() {
-  const itemsPerPage = DEFAULT_PAGE_SIZE;
+export async function getTrending(): Promise<ContentTabResult> {
   return handleDatabaseOperation(async () => {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 14);
-    const [items, totalItems] = await Promise.all([
-      prisma.movie.findMany({
-        where: {
-          createdAt: { gte: cutoffDate },
-          rating: { gte: 3.0 }, // Adjustable threshold
+    // Fetch top 8 movies by rating
+    const topMovies = await prisma.content.findMany({
+      where: {
+        type: ContentType.MOVIES,
+        movie: { rating: { gte: 3.5 } },
+      },
+      orderBy: [{ movie: { rating: "desc" } }, { createdAt: "desc" }],
+      take: 8,
+      include: contentInclude,
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.TRENDING]),
+    });
+
+    // Fetch top 8 series with at least one episode rated >= 3.5
+    const topSeries = await prisma.content.findMany({
+      where: {
+        type: ContentType.SERIES,
+        series: {
+          seasons: {
+            some: { episodes: { some: { rating: { gte: 3.5 } } } },
+          },
         },
-        orderBy: [{ title: "asc" }], // Then alphabetically
-        skip: Math.floor(Math.random() * itemsPerPage),
-        take: itemsPerPage,
-        cacheStrategy: applyCacheStrategy([CACHE_TAGS.TRENDING]),
-      }),
-      itemsPerPage,
-    ]);
-    return { items, totalItems };
+      },
+      orderBy: [{ createdAt: "desc" }],
+      take: 8,
+      include: contentInclude,
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.TRENDING]),
+    });
+
+    // Combine and sort by rating (movies use movie.rating, series fallback to 3.5)
+    const trending = [...topMovies, ...topSeries]
+      .sort((a, b) => {
+        const aRating = a.movie?.rating ?? (a.series ? 3.5 : 0);
+        const bRating = b.movie?.rating ?? (b.series ? 3.5 : 0);
+        return bRating - aRating;
+      })
+      .slice(0, 16);
+
+    if (trending.length < 16) {
+      console.warn(`Only ${trending.length} trending items available.`);
+    }
+
+    return { items: trending, totalItems: trending.length };
   }, "Failed to fetch trending content");
 }
 
-// Fetch new releases (last 30 days)
-export async function getNewReleases() {
-  const itemsPerPage = DEFAULT_PAGE_SIZE;
+// Fetch new releases (last 6 months)
+export async function getNewReleases(): Promise<ContentTabResult> {
   return handleDatabaseOperation(async () => {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 30);
-    const [items, totalItems] = await Promise.all([
-      prisma.movie.findMany({
-        where: { createdAt: { gte: cutoffDate, lte: new Date() } },
-        orderBy: [{ createdAt: "desc" }], // Then most recent
-        take: itemsPerPage,
-        cacheStrategy: applyCacheStrategy([CACHE_TAGS.NEW_RELEASES]),
-      }),
-      itemsPerPage,
-    ]);
-    return { items, totalItems };
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const newReleases = await prisma.content.findMany({
+      where: {
+        releaseDate: {
+          gte: sixMonthsAgo,
+        },
+      },
+      orderBy: [{ releaseDate: "desc" }, { createdAt: "desc" }],
+      take: 16,
+      include: contentInclude,
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.NEW_RELEASES]),
+    });
+
+    if (newReleases.length < 16) {
+      console.warn(`Only ${newReleases.length} new releases available.`);
+    }
+
+    return { items: newReleases, totalItems: newReleases.length };
   }, "Failed to fetch new releases");
 }
 
@@ -166,8 +219,21 @@ export async function getNewReleases() {
 export async function getMovieById(id: string) {
   if (!id) throw new AppError("Movie ID is required", 400);
   return handleDatabaseOperation(async () => {
-    const movie = await prisma.movie.findUnique({
+    const movie = await prisma.content.findUnique({
       where: { id, type: ContentType.MOVIES },
+      include: {
+        movie: {
+          include: {
+            videoQualities: true,
+          },
+        },
+        genres: {
+          include: {
+            genre: true,
+          },
+        },
+        cast: true,
+      },
       cacheStrategy: applyCacheStrategy([CACHE_TAGS.MOVIES]),
     });
     if (!movie) throw new AppError("Movie not found", 404);
@@ -175,15 +241,17 @@ export async function getMovieById(id: string) {
   }, "Failed to fetch movie");
 }
 
-// Fetch series by ID with seasons and episodes
-export async function getSeriesById(id: string) {
+// Fetch series by ID with seasons and optional episodes
+export async function getSeriesById(id: string, includeEpisodes = false) {
   if (!id) throw new AppError("Series ID is required", 400);
   return handleDatabaseOperation(async () => {
-    const series = await prisma.movie.findUnique({
+    const series = await prisma.content.findUnique({
       where: { id, type: ContentType.SERIES },
       include: {
-        seasons: { include: { episodes: true } },
-        watchlist: true,
+        genres: { include: { genre: true } },
+        series: {
+          include: { seasons: { include: { episodes: includeEpisodes } } },
+        },
       },
       cacheStrategy: applyCacheStrategy([CACHE_TAGS.SERIES]),
     });
@@ -199,7 +267,7 @@ export async function getSeasonById(seasonId: string) {
     const season = await prisma.season.findUnique({
       where: { id: seasonId },
       include: { episodes: true },
-      cacheStrategy: applyCacheStrategy([CACHE_TAGS.SERIES]),
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.SEASONS]),
     });
     if (!season) throw new AppError("Season not found", 404);
     return season;
@@ -212,7 +280,10 @@ export async function getEpisodeById(episodeId: string) {
   return handleDatabaseOperation(async () => {
     const episode = await prisma.episode.findUnique({
       where: { id: episodeId },
-      cacheStrategy: applyCacheStrategy([CACHE_TAGS.SERIES]),
+      include: {
+        videoQualities: true,
+      },
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.EPISODES]),
     });
     if (!episode) throw new AppError("Episode not found", 404);
     return episode;
@@ -225,234 +296,53 @@ export async function getSimilarMovies(
   genres: string[],
   minRating: number
 ) {
-  if (!genres || genres.length === 0) {
+  if (!genres?.length) {
     throw new AppError("At least one genre must be provided", 400);
   }
-
   return handleDatabaseOperation(async () => {
-    const similarMovies = await prisma.movie.findMany({
+    const similarMovies = await prisma.content.findMany({
       where: {
         type,
-        rating: { gte: minRating },
+        genres: { some: { genre: { name: { in: genres } } } },
+        movie: { rating: { gte: minRating } },
       },
-      orderBy: [
-        { rating: "desc" }, // Higher-rated movies first
-        { title: "asc" }, // Alphabetical order as a secondary sort
-      ],
-      take: 10, // Limit the number of recommendations
+      orderBy: [{ movie: { rating: "desc" } }, { title: "asc" }],
+      take: 10,
+      include: { movie: true },
       cacheStrategy: applyCacheStrategy([CACHE_TAGS.SIMILAR_MOVIES]),
     });
-
-    if (similarMovies.length === 0) {
+    if (!similarMovies.length) {
       throw new AppError("No similar movies found", 404);
     }
-
     return similarMovies;
   }, "Failed to fetch similar movies");
 }
 
-// fetch user watchlist
-export async function getUserWatchlist(userId: string) {
-  if (!userId) throw new AppError("User ID is required", 400);
+export async function getSearchResults(query?: string) {
+  if (!query) return undefined;
+  if (!query || query.trim() === "") return [];
+  const sanitizedQuery = query.trim().slice(0, 100);
   return handleDatabaseOperation(async () => {
-    const watchlist = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        watchlist: {
-          include: {
-            Movie: true,
+    const content = await prisma.content.findMany({
+      where: {
+        OR: [
+          { title: { contains: sanitizedQuery, mode: "insensitive" } },
+          { description: { contains: sanitizedQuery, mode: "insensitive" } },
+          {
+            genres: {
+              some: {
+                genre: {
+                  name: { contains: sanitizedQuery, mode: "insensitive" },
+                },
+              },
+            },
           },
-        },
+        ],
       },
-      cacheStrategy: applyCacheStrategy([CACHE_TAGS.USER_WATCHLIST]),
-    });
-    return watchlist;
-  }, "Failed to fetch user watchlist");
-}
-
-// fetch user by email
-export async function getUserByEmail(email: string) {
-  if (!email) throw new AppError("Email is required", 400);
-  return handleDatabaseOperation(async () => {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      cacheStrategy: applyCacheStrategy([CACHE_TAGS.USER_EMAIL]),
-    });
-    return user;
-  }, "Failed to fetch user");
-}
-
-// fetch user by ID
-export async function getUserById(id: string) {
-  if (!id) throw new AppError("User ID is required", 400);
-  return handleDatabaseOperation(async () => {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      cacheStrategy: applyCacheStrategy([CACHE_TAGS.USER_ID]),
-    });
-    return user;
-  }, "Failed to fetch user");
-}
-
-export async function createUser(
-  name: string,
-  email: string,
-  password: string
-) {
-  if (!name || !email || !password) {
-    throw new AppError("All fields are required", 400);
-  }
-  if (password.length < OTP_LENGTH) {
-    throw new AppError("Password must be at least 8 characters long", 400);
-  }
-  return handleDatabaseOperation(async () => {
-    const user = await prisma.user.create({
-      data: { name, email, password },
-    });
-    return user;
-  }, "Failed to create user");
-}
-
-export async function updateUser(userId: string, data: Prisma.UserUpdateInput) {
-  if (!userId || !data) {
-    throw new AppError("User ID and data are required", 400);
-  }
-  return handleDatabaseOperation(async () => {
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data,
-    });
-    return user;
-  }, "Failed to update user");
-}
-
-export async function deleteUser(userId: string) {
-  if (!userId) throw new AppError("User ID is required", 400);
-  return handleDatabaseOperation(async () => {
-    const user = await prisma.user.delete({
-      where: { id: userId },
-    });
-    return user;
-  }, "Failed to delete user");
-}
-
-export async function createContent(data: Prisma.MovieCreateInput) {
-  if (!data) throw new AppError("Content data is required", 400);
-  return handleDatabaseOperation(async () => {
-    const content = await prisma.movie.create({
-      data,
+      orderBy: { title: "asc" },
+      include: contentInclude,
+      cacheStrategy: applyCacheStrategy([CACHE_TAGS.CONTENT]),
     });
     return content;
-  }, "Failed to create content");
-}
-
-export async function updateContent(id: string, data: Prisma.MovieUpdateInput) {
-  if (!id || !data) throw new AppError("ID and data are required", 400);
-  return handleDatabaseOperation(async () => {
-    const content = await prisma.movie.update({
-      where: { id },
-      data,
-    });
-    return content;
-  }, "Failed to update content");
-}
-
-export async function deleteContent(id: string) {
-  if (!id) throw new AppError("ID is required", 400);
-  return handleDatabaseOperation(async () => {
-    const content = await prisma.movie.delete({
-      where: { id },
-    });
-    return content;
-  }, "Failed to delete content");
-}
-
-export async function addToWatchlist(userId: string, contentId: string) {
-  if (!userId || !contentId)
-    throw new AppError("User ID and content ID are required", 400);
-  return handleDatabaseOperation(async () => {
-    const watchlistItem = await prisma.watchlist.create({
-      data: {
-        userId,
-        movieId: contentId,
-      },
-    });
-    return watchlistItem;
-  }, "Failed to add to watchlist");
-}
-
-export async function removeFromWatchlist(userId: string, contentId: string) {
-  if (!userId || !contentId)
-    throw new AppError("User ID and content ID are required", 400);
-  return handleDatabaseOperation(async () => {
-    const watchlistItem = await prisma.watchlist.deleteMany({
-      where: {
-        userId,
-        movieId: contentId,
-      },
-    });
-    return watchlistItem;
-  }, "Failed to remove from watchlist");
-}
-
-export async function clearWatchlist(userId: string) {
-  if (!userId) throw new AppError("User ID is required", 400);
-  return handleDatabaseOperation(async () => {
-    const watchlist = await prisma.watchlist.deleteMany({
-      where: { userId },
-    });
-    return watchlist;
-  }, "Failed to clear watchlist");
-}
-
-export async function getContentStats() {
-  return handleDatabaseOperation(async () => {
-    const stats = {
-      totalMovies: await prisma.movie.count({
-        where: { type: ContentType.MOVIES },
-      }),
-      totalSeries: await prisma.movie.count({
-        where: { type: ContentType.SERIES },
-      }),
-      totalAnimations: await prisma.movie.count({
-        where: { isAnimation: true },
-      }),
-      totalUsers: await prisma.user.count(),
-      totalContent: await prisma.movie.count(),
-    };
-    return stats;
-  }, "Failed to fetch content stats");
-}
-
-export async function isInWatchlist(
-  userId: string,
-  contentId: string
-): Promise<boolean> {
-  if (!userId || !contentId)
-    throw new AppError("User ID and content ID are required", 400);
-  return handleDatabaseOperation(async () => {
-    const item = await prisma.watchlist.findFirst({
-      where: {
-        userId,
-        movieId: contentId,
-      },
-    });
-    return !!item;
-  }, "Failed to check watchlist");
-}
-
-export async function markAsWatched(
-  userId: string,
-  contentId: string,
-  status: WatchlistStatus = WatchlistStatus.PLANNED
-) {
-  if (!userId || !contentId)
-    throw new AppError("User ID and content ID are required", 400);
-  return handleDatabaseOperation(async () => {
-    const updated = await prisma.watchlist.updateMany({
-      where: { userId, movieId: contentId },
-      data: { status },
-    });
-    return updated;
-  }, "Failed to update watched status");
+  }, "Failed to fetch content");
 }

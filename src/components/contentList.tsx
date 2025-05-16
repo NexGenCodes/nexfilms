@@ -1,14 +1,15 @@
 "use client";
 
-import { Sorting } from "./sorting";
+import Sorting from "./sorting";
 import { ContentCard } from "./content-card";
-import { Movie } from "@prisma/client";
 import Pagination from "./pagination";
+import { Content } from "@prisma/client";
+import { motion } from "framer-motion";
 
 interface Props {
-  items: Movie[];
+  items: Content[];
   totalItems: number;
-  name: "movies" | "series" | "animations";
+  name: string;
 }
 
 export default function ContentList({ items, totalItems, name }: Props) {
@@ -22,7 +23,17 @@ export default function ContentList({ items, totalItems, name }: Props) {
         {items.length === 0 ? (
           <p className="text-gray-500 col-span-full">No {name} found.</p>
         ) : (
-          items.map((item) => <ContentCard key={item.id} content={item} />)
+          items.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className="card-fancy"
+            >
+              <ContentCard content={item} />
+            </motion.div>
+          ))
         )}
       </div>
       <Pagination

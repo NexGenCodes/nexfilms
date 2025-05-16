@@ -1,448 +1,285 @@
-import prisma from "@/lib/prisma";
-import { ContentType, UserRole, VideoQualityType } from "@prisma/client";
-import { hash } from "bcryptjs";
-import { nanoid } from "nanoid";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { PrismaClient, ContentType, PgRating, VideoQualityType, Prisma } from '@prisma/client';
+import { nanoid } from 'nanoid';
 
-// Type Definitions
-interface UserSeed {
-  name: string;
-  email: string;
-  rawPassword: string;
-  role: UserRole;
-}
+const prisma = new PrismaClient();
 
-interface ContentSeed {
-  id: string;
-  title: string;
-  type: ContentType;
-  isAnimation: boolean;
-}
-
-interface SeedResult {
-  name: string;
-  status: "Success" | "Failed";
-  reason?: unknown;
-}
-
-// Predefined genre pools
-const genrePool = {
-  nonAnimated: [
-    "Action",
-    "Adventure",
-    "Drama",
-    "Comedy",
-    "Thriller",
-    "Sci-Fi",
-    "Mystery",
-    "Horror",
-    "Romance",
-    "Crime",
+const config = {
+  genres: [
+    { name: 'Action', slug: 'action' },
+    { name: 'Comedy', slug: 'comedy' },
+    { name: 'Drama', slug: 'drama' },
+    { name: 'Sci-Fi', slug: 'sci-fi' },
+    { name: 'Horror', slug: 'horror' },
+    { name: 'Animation', slug: 'animation' },
   ],
-  animated: ["Family", "Comedy", "Adventure", "Fantasy"],
+  cast: ['Emma Stone', 'Ryan Gosling', 'Chris Evans', 'Scarlett Johansson', 'Tom Hanks', 'Zendaya', 'Viola Davis', 'Hugh Jackman'],
+  titles: ['Starlight Odyssey', 'Moonlit Shadows', 'City of Dreams', 'Neon Horizon', 'Skyward Bound', 'Crimson Tide', 'Golden Dawn', 'Frozen Empire', 'Lost Legends', 'Eternal Flame'],
+  directors: ['Steven Spielberg', 'Greta Gerwig', 'Christopher Nolan', 'Ava DuVernay', 'James Cameron'],
+  descriptions: ['A thrilling adventure.', 'A heartwarming tale.', 'An epic saga.', 'A gripping drama.', 'A comedic journey.'],
+  pgRatings: ['G', 'PG', 'PG_13', 'R', 'TV_Y', 'TV_G', 'TV_PG', 'TV_14'] as PgRating[],
+  videoQualities: [
+    { quality: 'Q240P' as VideoQualityType, url: (id: string) => `http://example.com/video/${id}/240p.mp4` },
+    { quality: 'Q480P' as VideoQualityType, url: (id: string) => `http://example.com/video/${id}/480p.mp4` },
+    { quality: 'Q720P' as VideoQualityType, url: (id: string) => `http://example.com/video/${id}/720p.mp4` },
+    { quality: 'Q1080P' as VideoQualityType, url: (id: string) => `http://example.com/video/${id}/1080p.mp4` },
+  ],
+  counts: {
+    movies: 10,
+    animatedMovies: 10,
+    series: 10,
+    animatedSeries: 10,
+    episodesPerSeason: 3,
+    seasonsPerSeries: 1,
+    maxCastPerContent: 3,
+    maxGenresPerContent: 3,
+  },
+  batchSize: 4, // Increased to 4 for concurrency
 };
 
 // Utility Functions
-const generateGenres = (isAnimation: boolean): string[] => {
-  const pool = isAnimation ? genrePool.animated : genrePool.nonAnimated;
-  const count = Math.floor(Math.random() * 3) + 1; // 1–3 genres
-  return pool.sort(() => 0.5 - Math.random()).slice(0, count);
-};
+const generateId = () => nanoid();
 
-const generateRating = (): number => {
-  const whole = Math.floor(Math.random() * 6); // 0–5 stars
-  const decimal = Math.random() < 0.5 ? 0.5 : 0;
-  return Math.min(parseFloat((whole + decimal).toFixed(1)), 5); // Enforce 0–5
-};
-
-const generateReleaseDate = (): Date => {
-  const startYear = 2000;
-  const endYear = new Date().getFullYear();
-  const randomYear =
-    Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
-  const randomMonth = Math.floor(Math.random() * 12) + 1;
-  const randomDay = Math.floor(Math.random() * 28) + 1; // To avoid invalid dates
-  return new Date(
-    `${randomYear}-${String(randomMonth).padStart(2, "0")}-${String(
-      randomDay
-    ).padStart(2, "0")}`
-  );
-};
-
-const generateImageUrl = (
-  type: "poster" | "backdrop" | "season-poster" | "episode-thumbnail",
-  isAnimation: boolean,
-  title?: string
-): string => {
-  const baseUrl = "https://placehold.co";
+const getImageUrl = (type: 'poster' | 'backdrop' | 'season-poster' | 'episode-thumbnail', isAnimation: boolean, title?: string) => {
+  const baseUrl = 'https://placehold.co';
   const config = {
-    poster: { size: "500x750", bgColor: isAnimation ? "blue" : "gray" },
-    backdrop: { size: "1280x720", bgColor: isAnimation ? "blue" : "gray" },
-    "season-poster": {
-      size: "500x750",
-      bgColor: isAnimation ? "green" : "black",
-    },
-    "episode-thumbnail": {
-      size: "1280x720",
-      bgColor: isAnimation ? "purple" : "black",
-    },
+    poster: { size: '500x750', bgColor: isAnimation ? 'blue' : 'gray' },
+    backdrop: { size: '1280x720', bgColor: isAnimation ? 'blue' : 'gray' },
+    'season-poster': { size: '500x750', bgColor: isAnimation ? 'green' : 'black' },
+    'episode-thumbnail': { size: '1280x720', bgColor: isAnimation ? 'purple' : 'black' },
   }[type];
-
-  const text =
-    type.includes("season") || type.includes("episode")
-      ? type.split("-")[0]
-      : title?.replace(/ /g, "+");
-  const url = `${baseUrl}/${config.size}/${config.bgColor}/white`;
-  return text ? `${url}?text=${text}` : url;
+  const text = type.includes('-') ? type.split('-')[0] : title?.replace(/ /g, '+');
+  return text ? `${baseUrl}/${config.size}/${config.bgColor}/white?text=${text}` : `${baseUrl}/${config.size}/${config.bgColor}/white`;
 };
 
-const generateVideoQualities = (movieId?: string, episodeId?: string) => {
-  const qualities: VideoQualityType[] = [
-    VideoQualityType.Q240P,
-    VideoQualityType.Q480P,
-    VideoQualityType.Q720P,
-    VideoQualityType.Q1080P,
-  ];
-  const count = Math.floor(Math.random() * qualities.length) + 1; // 1–4 qualities
-  return qualities.slice(0, count).map((quality) => ({
-    id: nanoid(),
-    quality,
-    url: `https://example.com/video-${quality}.mp4`,
-    movieId,
-    episodeId,
-  }));
+const getRating = () => Math.min(Math.floor(Math.random() * 6) + (Math.random() < 0.5 ? 0.5 : 0), 5);
+
+const getReleaseDate = () => {
+  const randomYear = Math.floor(Math.random() * (2025 - 2000 + 1)) + 2000;
+  return new Date(Date.UTC(randomYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1));
 };
 
-async function seedUsers() {
+const logResults = (type: string, count: number, errors: string[], isAnimation?: boolean, startTime?: number) => {
+  const successCount = count - errors.length;
+  const duration = startTime ? (performance.now() - startTime) / 1000 : 0;
+  console.log(`✅ Created ${successCount} ${isAnimation !== undefined ? (isAnimation ? 'animated ' : '') : ''}${type.toLowerCase()} in ${duration.toFixed(2)} seconds.`);
+  if (errors.length > 0) {
+    console.warn(`⚠️ ${errors.length} ${type.toLowerCase()} creation(s) failed:`);
+    errors.forEach((error, i) => console.warn(`  - ${type} ${i + 1}: ${error}`));
+  }
+  return successCount;
+};
+
+// Batch Processing Utility
+async function processBatch<T>(items: T[], fn: (item: T, index: number) => Promise<void>, batchSize: number) {
+  const errors: string[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(async (item, index) => {
+        try {
+          await fn(item, i + index);
+        } catch (error: any) {
+          const message = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
+            ? `Unique constraint failed: ${error.meta?.target}`
+            : error.message;
+          errors.push(message);
+        }
+      })
+    );
+    await results;
+  }
+  return errors;
+}
+
+// Data Creation Functions
+async function createGenres() {
+  console.log('📋 Creating genres...');
+  const startTime = performance.now();
   try {
-    const users: UserSeed[] = [
-      {
-        name: "Admin User",
-        email: "admin@example.com",
-        rawPassword: "admin123",
-        role: UserRole.ADMIN,
-      },
-      {
-        name: "Regular User",
-        email: "user@example.com",
-        rawPassword: "user123",
-        role: UserRole.USER,
-      },
-    ];
+    await prisma.genre.createMany({ data: config.genres, skipDuplicates: true });
+    return logResults('Genres', config.genres.length, [], undefined, startTime);
+  } catch (error: any) {
+    return logResults('Genres', config.genres.length, [error.message], undefined, startTime);
+  }
+}
 
-    const hashedUsers = await Promise.all(
-      users.map(async (user) => ({
-        ...user,
-        password: await hash(user.rawPassword, 12),
+async function createCast() {
+  console.log('📋 Creating cast...');
+  const startTime = performance.now();
+  try {
+    await prisma.cast.createMany({ data: config.cast.map((name) => ({ name })), skipDuplicates: true });
+    return logResults('Cast', config.cast.length, [], undefined, startTime);
+  } catch (error: any) {
+    return logResults('Cast', config.cast.length, [error.message], undefined, startTime);
+  }
+}
+
+async function createContent(
+  type: ContentType,
+  isAnimation: boolean,
+  index: number,
+  genres: { id: string; slug: string }[],
+  cast: { id: string }[]
+) {
+  const id = generateId();
+  const title = `${config.titles[index % config.titles.length]} ${isAnimation ? '(Animated)' : ''}`;
+  const selectedGenres = new Set<string>();
+  const contentGenres = [
+    Math.random() < 0.5 ? genres[0] : genres[1],
+    genres[Math.floor(Math.random() * 4) + 2],
+    ...(isAnimation ? [genres.find((g) => g.slug === 'animation')!] : []),
+  ].filter((genre) => {
+    if (selectedGenres.has(genre.id)) return false;
+    selectedGenres.add(genre.id);
+    return true;
+  }).slice(0, config.counts.maxGenresPerContent);
+
+  const contentCast = cast.slice(0, Math.min(config.counts.maxCastPerContent, cast.length));
+
+  const contentData = {
+    id,
+    title,
+    description: config.descriptions[Math.floor(Math.random() * config.descriptions.length)],
+    releaseDate: getReleaseDate(),
+    director: config.directors[Math.floor(Math.random() * config.directors.length)],
+    duration: type === 'MOVIES' ? Math.floor(Math.random() * (180 - 60 + 1)) + 60 : Math.floor(Math.random() * (60 - 20 + 1)) + 20,
+    pgRating: config.pgRatings[Math.floor(Math.random() * config.pgRatings.length)],
+    posterUrl: getImageUrl('poster', isAnimation, title),
+    backdropUrl: getImageUrl('backdrop', isAnimation, title),
+    type,
+    isAnimation,
+    genres: { create: contentGenres.map((genre) => ({ genreId: genre.id })) }, // Batch GenreContent
+    cast: { connect: contentCast.map((c) => ({ id: c.id })) },
+  };
+
+  const content = await prisma.content.create({ data: contentData });
+
+  if (type === 'MOVIES') {
+    const videoQualitiesData = config.videoQualities.map((vq) => ({
+      id: generateId(),
+      movieId: content.id,
+      quality: vq.quality,
+      url: vq.url(id),
+    }));
+    await prisma.videoQuality.createMany({ data: videoQualitiesData }); // Batch VideoQuality
+    await prisma.movie.create({
+      data: {
+        id: content.id,
+        rating: getRating(),
+        trailerUrl: `http://example.com/trailer/${id}.mp4`,
+      },
+    });
+  } else {
+    const seasonsData = Array.from({ length: config.counts.seasonsPerSeries }, (_, sIndex) => ({
+      id: generateId(),
+      seriesId: content.id,
+      number: sIndex + 1,
+      title: `Season ${sIndex + 1}`,
+      posterUrl: getImageUrl('season-poster', isAnimation),
+      episodes: {
+        createMany: {
+          data: Array.from({ length: config.counts.episodesPerSeason }, (_, epIndex) => ({
+            id: generateId(),
+            number: epIndex + 1,
+            title: `Episode ${epIndex + 1}`,
+            description: config.descriptions[Math.floor(Math.random() * config.descriptions.length)],
+            duration: Math.floor(Math.random() * (60 - 20 + 1)) + 20,
+            posterUrl: getImageUrl('episode-thumbnail', isAnimation),
+            rating: getRating(),
+            trailerUrl: `http://example.com/trailer/${id}-${epIndex}.mp4`,
+          })),
+        },
+      },
+    }));
+
+    await prisma.series.create({
+      data: {
+        id: content.id,
+        seasons: { create: seasonsData },
+      },
+    });
+
+    // Batch VideoQuality for episodes
+    const episodeIds = await prisma.episode.findMany({
+      where: { season: { seriesId: content.id } },
+      select: { id: true },
+    });
+    const videoQualitiesData = episodeIds.flatMap((ep) =>
+      config.videoQualities.map((vq) => ({
+        id: generateId(),
+        episodeId: ep.id,
+        quality: vq.quality,
+        url: vq.url(`${id}-${ep.id}`),
       }))
     );
-
-    await prisma.user.createMany({
-      data: hashedUsers.map((user) => ({
-        id: nanoid(),
-        name: user.name,
-        email: user.email,
-        password: user.password,
-        role: user.role,
-        emailVerified: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      })),
-      skipDuplicates: true,
-    });
-    console.log("Users seeded successfully");
-  } catch (error) {
-    throw new Error(`Failed to seed users: ${error}`);
+    await prisma.videoQuality.createMany({ data: videoQualitiesData });
   }
 }
 
-async function seedContent(contents: ContentSeed[], name: string) {
-  try {
-    // Prepare movie data
-    const movieData = contents.map((content) => {
-      return {
-        id: content.id,
-        title: content.title,
-        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-        type: content.type,
-        isAnimation: content.isAnimation,
-        posterUrl: generateImageUrl(
-          "poster",
-          content.isAnimation,
-          content.title
-        ),
-        genres: generateGenres(content.isAnimation),
-        backdropUrl: generateImageUrl(
-          "backdrop",
-          content.isAnimation,
-          content.title
-        ),
-        releaseDate: generateReleaseDate(),
-        rating: generateRating(),
-        duration:
-          content.type === ContentType.MOVIES
-            ? Math.floor(Math.random() * 60) + 90
-            : Math.floor(Math.random() * 30) + 20,
-        trailerUrl: "https://example.com/trailer.mp4",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      };
-    });
-
-    const videoQualityData = contents
-      .filter((content) => content.type === ContentType.MOVIES)
-      .flatMap((content) => generateVideoQualities(content.id));
-
-    // Batch create movies, genres, and video qualities
-    await prisma.$transaction([
-      prisma.movie.createMany({
-        data: movieData,
-        skipDuplicates: true,
-      }),
-
-      prisma.videoQuality.createMany({
-        data: videoQualityData,
-        skipDuplicates: true,
-      }),
-    ]);
-
-    // Batch create seasons and episodes for series
-    const series = contents.filter((c) => c.type === ContentType.SERIES);
-    if (series.length > 0) {
-      const seasonData = series.flatMap((content) => {
-        const seasonCount = Math.floor(Math.random() * 3) + 1;
-        return Array.from({ length: seasonCount }, (_, j) => ({
-          id: nanoid(),
-          seasonNumber: j + 1,
-          title: `Season ${j + 1}`,
-          posterUrl: generateImageUrl("season-poster", content.isAnimation),
-          movieId: content.id,
-          overview: "Season overview placeholder.",
-          releaseDate: new Date(`${2015 + j}-01-01`),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null,
-        }));
-      });
-
-      const episodeData = seasonData.flatMap((season) => {
-        const episodeCount = Math.floor(Math.random() * 6) + 5;
-        return Array.from({ length: episodeCount }, (_, k) => ({
-          id: nanoid(),
-          episodeNumber: k + 1,
-          title: `Episode ${k + 1}`,
-          description:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-          duration: Math.floor(Math.random() * 30) + 20,
-          thumbnailUrl: generateImageUrl("episode-thumbnail", false),
-          rating: generateRating(),
-          trailerUrl: "https://example.com/trailer.mp4",
-          releaseDate: new Date(
-            `${2015 + season.seasonNumber}-01-${(k + 1)
-              .toString()
-              .padStart(2, "0")}`
-          ),
-          seasonId: season.id,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null,
-        }));
-      });
-
-      const videoQualityDataEpisodes = episodeData.flatMap((episode) =>
-        generateVideoQualities(undefined, episode.id)
-      );
-
-      await prisma.$transaction([
-        prisma.season.createMany({ data: seasonData, skipDuplicates: true }),
-        prisma.episode.createMany({ data: episodeData, skipDuplicates: true }),
-        prisma.videoQuality.createMany({
-          data: videoQualityDataEpisodes,
-          skipDuplicates: true,
-        }),
-      ]);
-    }
-    console.log(`${name} seeded successfully: ${contents.length} items`);
-  } catch (error) {
-    throw new Error(`Failed to seed content: ${error}`);
-  }
+async function createMovies(count: number, isAnimation: boolean, genres: { id: string; slug: string }[], cast: { id: string }[]) {
+  console.log(`📽️ Creating ${count} ${isAnimation ? 'animated ' : ''}movies...`);
+  const startTime = performance.now();
+  const items = Array.from({ length: count }, (_, i) => i);
+  const errors = await processBatch(
+    items,
+    async (index) => await createContent('MOVIES', isAnimation, index, genres, cast),
+    config.batchSize
+  );
+  return logResults('Movies', count, errors, isAnimation, startTime);
 }
 
-async function seedWatchlist(): Promise<void> {
-  try {
-    const [allMovies, allUsers] = await Promise.all([
-      prisma.movie.findMany({ select: { id: true } }),
-      prisma.user.findMany({ select: { id: true } }),
-    ]);
-
-    const watchlistData = allUsers.flatMap((user) => {
-      const watchlistMovies = allMovies
-        .sort(() => 0.5 - Math.random())
-        .slice(0, Math.floor(Math.random() * 3) + 3);
-      return watchlistMovies.map((movie) => ({
-        id: nanoid(),
-        userId: user.id,
-        movieId: movie.id,
-        addedAt: new Date(),
-      }));
-    });
-
-    await prisma.$transaction([
-      prisma.watchlist.deleteMany(),
-      prisma.watchlist.createMany({
-        data: watchlistData,
-        skipDuplicates: true,
-      }),
-    ]);
-    console.log("Watchlists seeded successfully");
-  } catch (error) {
-    throw new Error(`Failed to seed watchlist: ${error}`);
-  }
+async function createSeries(count: number, isAnimation: boolean, genres: { id: string; slug: string }[], cast: { id: string }[]) {
+  console.log(`📺 Creating ${count} ${isAnimation ? 'animated ' : ''}series...`);
+  const startTime = performance.now();
+  const items = Array.from({ length: count }, (_, i) => i);
+  const errors = await processBatch(
+    items,
+    async (index) => await createContent('SERIES', isAnimation, index, genres, cast),
+    config.batchSize
+  );
+  return logResults('Series', count, errors, isAnimation, startTime);
 }
-
-// Content Generation Functions
-const generateMovies = (count: number): ContentSeed[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: nanoid(),
-    title: `Movie Title ${i + 1}`,
-    type: ContentType.MOVIES,
-    isAnimation: false,
-  }));
-
-const generateSeries = (count: number): ContentSeed[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: nanoid(),
-    title: `Series Title ${i + 1}`,
-    type: ContentType.SERIES,
-    isAnimation: false,
-  }));
-
-const generateAnimationMovies = (count: number): ContentSeed[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: nanoid(),
-    title: `Animation Title ${i + 1}`,
-    type: ContentType.MOVIES,
-    isAnimation: true,
-  }));
-
-const generateAnimationSeries = (count: number): ContentSeed[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: nanoid(),
-    title: `Animation Series ${i + 1}`,
-    type: ContentType.SERIES,
-    isAnimation: true,
-  }));
 
 async function main() {
-  console.log("Starting database seeding...");
+  console.log('🚀 Seeding started at', new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+  const startTime = performance.now();
 
-  // Generate content
-  const movies = generateMovies(20);
-  const series = generateSeries(15);
-  const animationMovies = generateAnimationMovies(10);
-  const animationSeries = generateAnimationSeries(10);
+  try {
+    // Optimize database for seeding
+    console.log('🧹 Clearing existing data...');
+    await prisma.$executeRaw`TRUNCATE TABLE "Content", "Movie", "Series", "Season", "Episode", "VideoQuality", "Genre", "Cast", "GenreContent" RESTART IDENTITY CASCADE;`;
 
-  // Seed dependencies sequentially
+    // Temporarily disable indexes to speed up writes
+    await prisma.$executeRaw`ALTER TABLE "VideoQuality" DROP CONSTRAINT "unique_episode_quality", DROP CONSTRAINT "unique_movie_quality";`;
 
-  const userResult = await executeWithRetry("Users", seedUsers);
-  if (userResult.status === "Failed") {
-    console.error("User seeding failed, aborting:", userResult.reason);
+    const genresCreated = await createGenres();
+    const castCreated = await createCast();
+
+    if (!genresCreated || !castCreated) throw new Error('Cannot proceed: Genres or cast creation failed.');
+
+    const genreRecords = await prisma.genre.findMany();
+    const castRecords = await prisma.cast.findMany();
+
+    let totalCreated = 0;
+    totalCreated += await createMovies(config.counts.movies, false, genreRecords, castRecords);
+    totalCreated += await createMovies(config.counts.animatedMovies, true, genreRecords, castRecords);
+    totalCreated += await createSeries(config.counts.series, false, genreRecords, castRecords);
+    totalCreated += await createSeries(config.counts.animatedSeries, true, genreRecords, castRecords);
+
+    // Re-enable indexes
+    await prisma.$executeRaw`ALTER TABLE "VideoQuality" ADD CONSTRAINT "unique_episode_quality" UNIQUE ("episodeId", "quality"), ADD CONSTRAINT "unique_movie_quality" UNIQUE ("movieId", "quality");`;
+
+    const endTime = performance.now();
+    console.log(`🎉 Seeding completed with ${totalCreated}/40 items in ${(endTime - startTime) / 1000} seconds!`);
+    if (totalCreated < 40) console.warn(`⚠️ Some items failed. Check warnings for details.`);
+  } catch (error) {
+    console.error('❌ Seeding failed:', error);
     process.exit(1);
-  }
-
-  // Seed content
-  const contentOperations = [
-    { name: "Movies", promise: () => seedContent(movies, "Movies") },
-    { name: "Series", promise: () => seedContent(series, "series") },
-    {
-      name: "Animation Movies",
-      promise: () => seedContent(animationMovies, "animationMovies"),
-    },
-    {
-      name: "Animation Series",
-      promise: () => seedContent(animationSeries, "animationSeries"),
-    },
-  ];
-
-  const contentResults: SeedResult[] = [];
-  for (const op of contentOperations) {
-    const result = await executeWithRetry(op.name, op.promise);
-    contentResults.push(result);
-  }
-
-  // Check for content failures
-  const failedContent = contentResults.filter((r) => r.status === "Failed");
-  if (failedContent.length > 0) {
-    console.warn(
-      `Warning: Content seeding failed for: ${failedContent
-        .map((f) => f.name)
-        .join(", ")}`
-    );
-    throw new Error("Cannot seed watchlist due to failed content seeding");
-  }
-
-  // Seed watchlist
-  const watchlistResult = await executeWithRetry("Watchlist", seedWatchlist);
-
-  // Final report
-  const allResults = [userResult, watchlistResult, ...contentResults];
-  console.log("\nFinal Seeding Report:");
-  allResults.forEach((r) => {
-    console.log(`${r.name}: ${r.status}${r.reason ? ` - ${r.reason}` : ""}`);
-  });
-
-  const failed = allResults.filter((r) => r.status === "Failed");
-  if (failed.length > 0) {
-    throw new Error(
-      `Seeding failed for: ${failed.map((f) => f.name).join(", ")}`
-    );
+  } finally {
+    await prisma.$disconnect();
+    console.log('🔌 Disconnected.');
   }
 }
 
-// Retry logic for transient errors
-const maxRetries = 3;
-const executeWithRetry = async (
-  name: string,
-  promise: () => Promise<void>
-): Promise<SeedResult> => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      await promise();
-      return { name, status: "Success" };
-    } catch (error) {
-      console.warn(`${name}: Attempt ${attempt} failed - ${error}`);
-      if (attempt === maxRetries || !isTransientError(error)) {
-        return { name, status: "Failed", reason: error };
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-    }
-  }
-  return {
-    name,
-    status: "Failed",
-    reason: new Error("Unexpected retry failure"),
-  };
-};
-
-// Check for transient Prisma errors
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isTransientError = (error: any): boolean => {
-  return (
-    error.code === "P1001" || // Database unreachable
-    error.code === "P1003" || // Database does not exist
-    error.message.includes("timeout") ||
-    error.message.includes("connection")
-  );
-};
-
-// Execute Seeding
-main()
-  .then(() => {
-    console.log("Seeding completed successfully!");
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("Seeding process encountered errors:", err);
-    process.exit(1);
-  });
+main();
