@@ -29,6 +29,7 @@ export function AppSidebar() {
     return pathname.startsWith(href);
   };
 
+
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
@@ -78,7 +79,7 @@ export function AppSidebar() {
                       isActive={isActive(item.href)}
                     >
                       <Link href={item.href}>
-                        <Icon className="size-4" />
+                        <Icon className="size-6" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>

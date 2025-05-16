@@ -69,6 +69,11 @@ model Content {
   genres GenreContent[] // Many-to-many relation with Genre
   movie  Movie? // One-to-one relation with Movie
   series Series? // One-to-one relation with Series
+
+  @@index([title])
+  @@index([description])
+  @@index([id])
+  @@index([type])
 }
 
 model Movie {
@@ -126,6 +131,8 @@ model Genre {
 
   // Relations
   contents GenreContent[] // Many-to-many relation with Content
+
+  @@index([name])
 }
 
 model GenreContent {
