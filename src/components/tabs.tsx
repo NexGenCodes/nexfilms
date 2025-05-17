@@ -39,7 +39,7 @@ export function ContentTabs({
     if (defaultTab && defaultTab !== activeTab) {
       setActiveTab(defaultTab);
     }
-  }, [defaultTab]);
+  }, [activeTab, defaultTab]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
