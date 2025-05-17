@@ -62,7 +62,7 @@ export default async function EpisodePage(props: { params: Params }) {
               <p className="text-muted-foreground">
                 {series.title} • {season.title} • {episode.duration}
               </p>
-              <div className="prose dark:prose-invert max-w-none">
+              <div className="prose dark:prose-invert max-w-none my-2">
                 <p>{episode.description}</p>
               </div>
               <Button variant="outline" asChild>

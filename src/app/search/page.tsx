@@ -5,7 +5,7 @@ import Head from "next/head";
 import { redirect } from "next/navigation";
 
 type SearchParams = Promise<
-  { page?: string; sortOrder?: string; q: string } | undefined
+  { page?: string; sortOrder?: string; q?: string } | undefined
 >;
 
 export default async function SearchPage(props: {
@@ -13,17 +13,17 @@ export default async function SearchPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const query = searchParams?.q || "";
-  const page = Math.max(1, parseInt(searchParams?.page || "1", 10));
+  const page = parseInt(searchParams?.page || "1", 10) || 1;
   const sortOrder = searchParams?.sortOrder === "desc" ? "desc" : "asc";
   const itemsPerPage = DEFAULT_PAGE_SIZE;
 
   if (!searchParams?.sortOrder) {
-    
     const params = new URLSearchParams({
       page: page.toString(),
       sortOrder: "asc",
+      q: encodeURIComponent(query),
     });
-    redirect(`/search?q=${encodeURIComponent(query)}?${params.toString()}`);
+    redirect(`/search?${params.toString()}`);
   }
 
   const { items, totalItems } = await getSearchResults(query, page, sortOrder);
@@ -34,8 +34,9 @@ export default async function SearchPage(props: {
     const params = new URLSearchParams({
       page: totalPages.toString(),
       sortOrder,
+      q: encodeURIComponent(query),
     });
-    redirect(`/search?q=${encodeURIComponent(query)}?${params.toString()}`);
+    redirect(`/search?${params.toString()}`);
   }
 
   return (
