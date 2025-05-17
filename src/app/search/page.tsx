@@ -26,7 +26,7 @@ export default async function SearchPage(props: {
     redirect(`/search?q=${encodeURIComponent(query)}?${params.toString()}`);
   }
 
-  const { items, totalItems } = await getSearchResults(page, sortOrder, query);
+  const { items, totalItems } = await getSearchResults(query, page, sortOrder);
 
   // Redirect if page is out of bounds
   const totalPages = Math.ceil(totalItems / itemsPerPage);
