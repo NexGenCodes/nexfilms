@@ -189,30 +189,22 @@ export async function getTrending(): Promise<ContentTabResult> {
   }, "Failed to fetch trending content");
 }
 
-// Fetch new releases (last 6 months)
+// Fetch newly added content (sorted by createdAt)
 export async function getNewReleases(): Promise<ContentTabResult> {
   return handleDatabaseOperation(async () => {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const newReleases = await prisma.content.findMany({
-      where: {
-        releaseDate: {
-          gte: sixMonthsAgo,
-        },
-      },
-      orderBy: [{ releaseDate: "desc" }, { createdAt: "desc" }],
+    const newAddedContent = await prisma.content.findMany({
+      orderBy: [{ createdAt: "desc" }],
       take: 16,
       include: contentInclude,
       cacheStrategy: applyCacheStrategy([CACHE_TAGS.NEW_RELEASES]),
     });
 
-    if (newReleases.length < 16) {
-      console.warn(`Only ${newReleases.length} new releases available.`);
+    if (newAddedContent.length < 16) {
+      console.warn(`Only ${newAddedContent.length} newly added items available.`);
     }
 
-    return { items: newReleases, totalItems: newReleases.length };
-  }, "Failed to fetch new releases");
+    return { items: newAddedContent, totalItems: newAddedContent.length };
+  }, "Failed to fetch newly added content");
 }
 
 // Fetch movie by ID

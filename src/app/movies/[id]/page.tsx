@@ -46,7 +46,7 @@ export default async function MoviePage(props: { params: Params }) {
             priority
           />
         </div>
-         <div className="space-y-4">
+        <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold mb-2 text-green-500">
             {movie.title}
           </h1>
@@ -93,14 +93,6 @@ export default async function MoviePage(props: { params: Params }) {
             {movie.description}
           </p>
 
-          <div className="flex flex-wrap gap-3 mb-8">
-            <Button variant="outline" asChild>
-              <Link href={`/download/${movie.id}?type=MOVIES`}>
-                <Download className="mr-2 h-4 w-4" /> Download
-              </Link>
-            </Button>
-          </div>
-
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold mb-1 text-green-500">Director</h3>
@@ -111,6 +103,13 @@ export default async function MoviePage(props: { params: Params }) {
               <h3 className="font-semibold mb-1 text-green-500">Cast</h3>
               <p>{movie.cast.map((cast) => cast.name).join(", ")}</p>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-3 mb-8">
+            <Button variant="outline" asChild>
+              <Link href={`/download/${movie.id}?type=MOVIES`}>
+                <Download className="mr-2 h-4 w-4" /> Download
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -138,3 +137,4 @@ export default async function MoviePage(props: { params: Params }) {
     </div>
   );
 }
+

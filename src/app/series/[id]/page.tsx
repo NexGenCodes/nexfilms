@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import BackHandler from "@/components/backHandler";
-import { StarIcon } from "lucide-react";
+import { Calendar, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type Params = Promise<{ id: string } | undefined>;
 
@@ -36,34 +37,53 @@ export default async function Page(props: { params: Params }) {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-xl font-bold lg:text-2xl xl:text-5xl my-2">
-              {series.title}
-            </h1>
-            <div className="flex flex-wrap gap-2">
-              {genreNames.map((genre, index) => (
-                <Badge key={index} variant="secondary">
-                  {genre}
-                </Badge>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {series.releaseDate.toLocaleDateString("en-us", {
-                  year: "numeric",
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-green-500">
+            {series.title}
+          </h1>
+
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <Badge
+              variant="outline"
+              className="bg-green-500/10 text-green-500 border-green-500/20"
+            >
+              {series.pgRating}
+            </Badge>
+            <div className="flex items-center text-muted-foreground">
+              <Calendar className="h-4 w-4 mr-1" />
+              <span>
+                {series.releaseDate.toLocaleDateString("en-US", {
+                  year: "2-digit",
                   month: "2-digit",
                   day: "2-digit",
                 })}
-              </Badge>
-              <p className="text-amber-500 text-xl flex items-center gap-1 mt-3  my-2 justify-center">
-                {series.pgRating} <StarIcon className="h-4 w-4" />
-              </p>
+              </span>
             </div>
           </div>
 
-          <div className="my-6">
-            <h2 className="text-xl font-semibold">Overview</h2>
-            <p className="text-muted-foreground my-1">{series.description}</p>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {genreNames.map((genre) => (
+              <Badge key={genre} variant="secondary" className="rounded-full">
+                {genre}
+              </Badge>
+            ))}
+          </div>
+
+          <p className="text-muted-foreground mb-6 text-base leading-relaxed">
+            {series.description}
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-1 text-green-500">Director</h3>
+              <p>{series.director}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 mb-8">
+            <Button variant="outline" asChild>
+              <Link href={`/download/${series.id}?type=MOVIES`}>
+                <Download className="mr-2 h-4 w-4" /> Download
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
