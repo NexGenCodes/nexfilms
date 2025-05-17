@@ -13,7 +13,8 @@ export function useSearchContent(searchTerm: string, debounceDelay = 300) {
       const timer = setTimeout(async () => {
         try {
           const data = await searchContent(searchTerm);
-          setResults(data || []);
+          setResults(data.items);
+          
           setError(null);
         } catch (err) {
           console.error("Error fetching search results:", err);

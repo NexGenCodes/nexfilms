@@ -17,8 +17,8 @@ export default async function SearchPage(props: {
   const sortOrder = searchParams?.sortOrder === "desc" ? "desc" : "asc";
   const itemsPerPage = DEFAULT_PAGE_SIZE;
 
-  // Redirect to include sortOrder=asc if missing
   if (!searchParams?.sortOrder) {
+    
     const params = new URLSearchParams({
       page: page.toString(),
       sortOrder: "asc",

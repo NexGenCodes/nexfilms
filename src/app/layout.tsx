@@ -7,7 +7,6 @@ import type { Metadata, Viewport } from "next";
 import type React from "react";
 import "@/globals.css";
 
-// Optimize font loading
 const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -51,7 +50,7 @@ export default function RootLayout({ children }: Readonly<Props>) {
           <SidebarProvider defaultOpen={true}>
             <div className="flex min-h-screen flex-col w-full">
               <AppHeader />
-              <div className="flex flex-1">
+              <div className="flex flex-1 capitalize">
                 <AppSidebar />
                 <main className="flex-1 p-6 md:p-8 ">{children}</main>
               </div>

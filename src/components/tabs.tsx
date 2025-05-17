@@ -34,6 +34,7 @@ export function ContentTabs({
   const [activeTab, setActiveTab] = useState<string>(
     defaultTab || tabs[0]?.id || ""
   );
+  
 
   useEffect(() => {
     if (defaultTab && defaultTab !== activeTab) {
