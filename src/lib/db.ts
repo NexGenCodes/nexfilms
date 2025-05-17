@@ -313,31 +313,32 @@ export async function getSimilarMovies(
   }, "Failed to fetch similar movies");
 }
 
-export async function getSearchResults(query?: string) {
-  if (!query) return undefined;
-  if (!query || query.trim() === "") return [];
+export async function getSearchResults(
+  page: number,
+  sortOrder: SortOrder,
+  query?: string
+) {
+  if (!query) return { items: [], totalItems: 0 };
+  if (!query || query.trim() === "") return { items: [], totalItems: 0 };
   const sanitizedQuery = query.trim().slice(0, 100);
-  return handleDatabaseOperation(async () => {
-    const content = await prisma.content.findMany({
-      where: {
-        OR: [
-          { title: { contains: sanitizedQuery, mode: "insensitive" } },
-          { description: { contains: sanitizedQuery, mode: "insensitive" } },
-          {
-            genres: {
-              some: {
-                genre: {
-                  name: { contains: sanitizedQuery, mode: "insensitive" },
-                },
+  return fetchContent(
+    page,
+    sortOrder,
+    {
+      OR: [
+        { title: { contains: sanitizedQuery, mode: "insensitive" } },
+        { description: { contains: sanitizedQuery, mode: "insensitive" } },
+        {
+          genres: {
+            some: {
+              genre: {
+                name: { contains: sanitizedQuery, mode: "insensitive" },
               },
             },
           },
-        ],
-      },
-      orderBy: { title: "asc" },
-      include: contentInclude,
-      cacheStrategy: applyCacheStrategy([CACHE_TAGS.CONTENT]),
-    });
-    return content;
-  }, "Failed to fetch content");
+        },
+      ],
+    },
+    CACHE_TAGS.MOVIES
+  );
 }

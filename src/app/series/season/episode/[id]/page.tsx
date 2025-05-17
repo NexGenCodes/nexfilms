@@ -55,7 +55,7 @@ export default async function EpisodePage(props: { params: Params }) {
             </div>
           </div>
           <div className="md:w-3/4">
-            <div className=" flex justify-items-center flex-col mb-8">
+            <div className=" mb-8">
               <h1 className="text-3xl font-bold mb-2 text-green-500">
                 {episode.number}. {episode.title}
               </h1>
