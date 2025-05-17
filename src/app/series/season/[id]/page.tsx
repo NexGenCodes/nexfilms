@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSeasonById, getSeriesById } from "@/lib/db";
 import BackHandler from "@/components/backHandler";
+import { Badge } from "@/components/ui/badge";
 
 type Params = Promise<{ id: string } | undefined>;
 
@@ -12,6 +13,7 @@ export default async function SeasonPage(props: { params: Params }) {
 
   const season = await getSeasonById(params.id);
   const series = await getSeriesById(season.seriesId);
+  const genreNames = series.genres.map((gc) => gc.genre.name);
 
   if (!season || !series) {
     notFound();
@@ -26,7 +28,7 @@ export default async function SeasonPage(props: { params: Params }) {
           <div className="md:w-1/4">
             <div className="relative aspect-video md:aspect-[2/3] overflow-hidden rounded-lg border border-border">
               <Image
-                src={season.posterUrl || "/placeholder.svg"}
+                src={season.posterUrl}
                 alt={season.title}
                 fill
                 className="object-cover"
@@ -44,6 +46,15 @@ export default async function SeasonPage(props: { params: Params }) {
               {season.episodes.length} Episodes •{" "}
               {series.releaseDate.getFullYear()}
             </p>
+            <div className="flex flex-wrap gap-2">
+              {genreNames.map((genre, index) => (
+                <Badge key={index} variant="secondary">
+                  {genre}
+                </Badge>
+              ))}
+            </div>
+
+            <p className="text-muted-foreground my-2">{series.description}</p>
           </div>
         </div>
 

@@ -30,55 +30,65 @@ export default async function EpisodePage(props: { params: Params }) {
       </div>
 
       <div>
-        <div className="relative aspect-video w-full rounded-lg overflow-hidden mb-8 bg-black">
-          {episode.trailerUrl ? (
-            <iframe
-              src={episode.trailerUrl}
-              title="Episode Trailer"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="object-cover w-full h-full rounded-lg"
-              style={{ aspectRatio: "16/9", border: 0 }}
-            />
-          ) : (
-            <Image
-              src={episode.posterUrl || "/placeholder.svg"}
-              alt={episode.title}
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-            />
-          )}
-        </div>
+        <div className="flex flex-col md:flex-row gap-6 mb-8">
+          <div className="md:w-1/4">
+            <div className="relative aspect-video w-full rounded-lg overflow-hidden mb-8 bg-black">
+              {episode.trailerUrl ? (
+                <iframe
+                  src={episode.trailerUrl}
+                  title="Episode Trailer"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="object-cover w-full h-full rounded-lg"
+                  style={{ aspectRatio: "16/9", border: 0 }}
+                />
+              ) : (
+                <Image
+                  src={episode.posterUrl || "/placeholder.svg"}
+                  alt={episode.title}
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority
+                />
+              )}
+            </div>
+          </div>
+          <div className="md:w-3/4">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2 text-green-500">
+                {episode.number}. {episode.title}
+              </h1>
+              <div className="flex items-center flex-col gap-2">
+                <p className="text-muted-foreground">
+                  {series.title} • {season.title} • {episode.duration}
+                </p>
+                <span className="text-sm text-muted-foreground">
+                  {episode.rating}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {series.pgRating}
+                </span>
+                <Button variant="outline" asChild>
+                  <Link href={`/download/${episode.id}?type=SERIES`}>
+                    <Download className="mr-2 h-4 w-4" /> Download
+                  </Link>
+                </Button>
+              </div>
+            </div>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-green-500">
-            {episode.number}. {episode.title}
-          </h1>
-          <div className="flex items-center justify-between">
-            <p className="text-muted-foreground">
-              {series.title} • {season.title} • {episode.duration}
-            </p>
-            <Button variant="outline" asChild>
-              <Link href={`/download/${episode.id}?type=SERIES`}>
-                <Download className="mr-2 h-4 w-4" /> Download
-              </Link>
-            </Button>
+            <div className="prose dark:prose-invert max-w-none">
+              <p>{episode.description}</p>
+            </div>
           </div>
         </div>
-
-        <div className="prose dark:prose-invert max-w-none">
-          <p>{episode.description}</p>
-        </div>
-
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">More Episodes</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {nextEpisodes.map((otherEpisode) => (
               <Link
                 key={otherEpisode.id}
-                href={`/series/${series.id}/season/${season.id}/episode/${otherEpisode.id}`}
+                href={`/series/season/episode/${otherEpisode.id}`}
                 className="flex flex-col border border-border rounded-lg overflow-hidden hover:border-green-500 hover:shadow-md hover:-translate-y-1 transition-transform duration-300"
               >
                 <div className="relative aspect-video">

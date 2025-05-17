@@ -36,8 +36,8 @@ export function Search() {
   };
 
   return (
-    <div ref={searchRef} className="relative w-full max-w-md">
-      <form onSubmit={handleSubmit} className="relative">
+    <div ref={searchRef} className="relative lg:w-full max-w-md">
+      <form onSubmit={handleSubmit} className="relative w-full max-w-md">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           ref={inputRef}
@@ -47,7 +47,6 @@ export function Search() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          
         />
         {searchTerm && (
           <Button
@@ -69,7 +68,9 @@ export function Search() {
           {error ? (
             <div className="p-4 text-center text-red-500">{error}</div>
           ) : isSearching ? (
-            <LoadingSpinner />
+            <div className="p-4 text-center">
+              <LoadingSpinner />
+            </div>
           ) : results.length > 0 ? (
             <div className="py-2">
               {results.slice(0, 6).map((result) => (
@@ -81,7 +82,7 @@ export function Search() {
                 >
                   <div className="relative h-12 w-8 flex-shrink-0 overflow-hidden rounded">
                     <Image
-                      src={result.posterUrl || "/placeholder.svg"}
+                      src={result.posterUrl}
                       alt={result.title}
                       fill
                       className="object-cover"

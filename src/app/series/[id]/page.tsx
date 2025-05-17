@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-// import { StarIcon } from "lucide-react";
 import BackHandler from "@/components/backHandler";
+import { StarIcon } from "lucide-react";
 
 type Params = Promise<{ id: string } | undefined>;
 
@@ -55,9 +55,9 @@ export default async function Page(props: { params: Params }) {
                   day: "2-digit",
                 })}
               </Badge>
-              {/* <p className="text-amber-500 text-xl flex items-center gap-1 mt-3  my-2 justify-center">
+              <p className="text-amber-500 text-xl flex items-center gap-1 mt-3  my-2 justify-center">
                 {series.pgRating} <StarIcon className="h-4 w-4" />
-              </p> */}
+              </p>
             </div>
           </div>
 

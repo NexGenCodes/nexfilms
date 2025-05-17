@@ -48,7 +48,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.0",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "nanoid": "^5.1.5",
     "postcss": "^8.5.3",
     "prisma": "^6.6.0",
     "tailwindcss": "3",
