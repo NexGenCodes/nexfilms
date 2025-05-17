@@ -505,7 +505,7 @@ async function main() {
     await prisma.$disconnect();
     console.log("🔌 Disconnected.");
     console.log(
-      `✅ Done in ${((performance.now() - start) / 1000).toFixed(2)}s`
+      `✅ completed ${((performance.now() - start) / 1000).toFixed(2)}s`
     );
   }
 }
