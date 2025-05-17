@@ -56,7 +56,7 @@ model Content {
   releaseDate DateTime
   director    String
   duration    Int         @db.SmallInt // Use Int for duration
-  pgRating    PgRating // Use enum for pgRating
+  pgRating    PgRating 
   posterUrl   String
   type        ContentType
   isAnimation Boolean     @default(false)
@@ -68,7 +68,7 @@ model Content {
   cast   Cast[]         @relation("ContentCast")
   genres GenreContent[] // Many-to-many relation with Genre
   movie  Movie? // One-to-one relation with Movie
-  series Series? // One-to-one relation with Series
+  series Series? 
 
   @@index([title])
   @@index([description])
