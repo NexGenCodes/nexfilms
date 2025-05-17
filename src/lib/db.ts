@@ -314,11 +314,10 @@ export async function getSimilarMovies(
 }
 
 export async function getSearchResults(
-  page: number,
-  sortOrder: SortOrder,
-  query?: string
+  query: string,
+  page: number = 1,
+  sortOrder: SortOrder = "asc"
 ) {
-  if (!query) return { items: [], totalItems: 0 };
   if (!query || query.trim() === "") return { items: [], totalItems: 0 };
   const sanitizedQuery = query.trim().slice(0, 100);
   return fetchContent(
