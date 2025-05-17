@@ -72,7 +72,6 @@ model Content {
 
   @@index([title])
   @@index([description])
-  @@index([id])
   @@index([type])
 }
 

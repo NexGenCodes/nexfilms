@@ -52,7 +52,7 @@ export function AppSidebar() {
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-bold text-primary text-xl leading-none capitalize ">
+                  <span className="font-bold text-primary text-xl leading-none uppercase">
                     {SITE_NAME}
                   </span>
                   <span className="text-xs text-muted-foreground leading-none ">

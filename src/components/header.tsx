@@ -45,8 +45,8 @@ export function AppHeader() {
           href="/"
           className="flex items-center gap-2 font-semibold text-lg text-primary"
         >
-          <span className="hidden sm:block capitalize">{SITE_NAME}</span>
-          <span className="inline-flex sm:hidden capitalize">
+          <span className="hidden sm:block uppercase">{SITE_NAME}</span>
+          <span className="inline-flex sm:hidden uppercase">
             {SITE_SHORT_URL}
           </span>
         </Link>
