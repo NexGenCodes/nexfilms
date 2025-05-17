@@ -59,19 +59,17 @@ export default async function EpisodePage(props: { params: Params }) {
               <h1 className="text-3xl font-bold mb-2 text-green-500">
                 {episode.number}. {episode.title}
               </h1>
-              <div className="flex items-center flex-col gap-2">
-                <p className="text-muted-foreground">
-                  {series.title} • {season.title} • {episode.duration}
-                </p>
-                <div className="prose dark:prose-invert max-w-none">
-                  <p>{episode.description}</p>
-                </div>
-                <Button variant="outline" asChild>
-                  <Link href={`/download/${episode.id}?type=SERIES`}>
-                    <Download className="mr-2 h-4 w-4" /> Download
-                  </Link>
-                </Button>
+              <p className="text-muted-foreground">
+                {series.title} • {season.title} • {episode.duration}
+              </p>
+              <div className="prose dark:prose-invert max-w-none">
+                <p>{episode.description}</p>
               </div>
+              <Button variant="outline" asChild>
+                <Link href={`/download/${episode.id}?type=SERIES`}>
+                  <Download className="mr-2 h-4 w-4" /> Download
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
