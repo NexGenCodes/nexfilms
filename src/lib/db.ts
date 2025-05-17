@@ -200,7 +200,9 @@ export async function getNewReleases(): Promise<ContentTabResult> {
     });
 
     if (newAddedContent.length < 16) {
-      console.warn(`Only ${newAddedContent.length} newly added items available.`);
+      console.warn(
+        `Only ${newAddedContent.length} newly added items available.`
+      );
     }
 
     return { items: newAddedContent, totalItems: newAddedContent.length };
@@ -241,6 +243,7 @@ export async function getSeriesById(id: string, includeEpisodes = false) {
       where: { id, type: ContentType.SERIES },
       include: {
         genres: { include: { genre: true } },
+        cast: { select: { name: true } },
         series: {
           include: { seasons: { include: { episodes: includeEpisodes } } },
         },

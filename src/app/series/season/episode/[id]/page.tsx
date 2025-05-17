@@ -55,7 +55,7 @@ export default async function EpisodePage(props: { params: Params }) {
             </div>
           </div>
           <div className="md:w-3/4">
-            <div className="mb-8">
+            <div className=" flex justify-items-center flex-col mb-8">
               <h1 className="text-3xl font-bold mb-2 text-green-500">
                 {episode.number}. {episode.title}
               </h1>
@@ -63,22 +63,15 @@ export default async function EpisodePage(props: { params: Params }) {
                 <p className="text-muted-foreground">
                   {series.title} • {season.title} • {episode.duration}
                 </p>
-                <span className="text-sm text-muted-foreground">
-                  {episode.rating}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {series.pgRating}
-                </span>
+                <div className="prose dark:prose-invert max-w-none">
+                  <p>{episode.description}</p>
+                </div>
                 <Button variant="outline" asChild>
                   <Link href={`/download/${episode.id}?type=SERIES`}>
                     <Download className="mr-2 h-4 w-4" /> Download
                   </Link>
                 </Button>
               </div>
-            </div>
-
-            <div className="prose dark:prose-invert max-w-none">
-              <p>{episode.description}</p>
             </div>
           </div>
         </div>

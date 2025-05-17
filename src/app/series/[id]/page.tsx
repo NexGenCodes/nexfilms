@@ -5,8 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import BackHandler from "@/components/backHandler";
-import { Calendar, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
 
 type Params = Promise<{ id: string } | undefined>;
 
@@ -79,11 +78,11 @@ export default async function Page(props: { params: Params }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-3 mb-8">
-            <Button variant="outline" asChild>
-              <Link href={`/download/${series.id}?type=MOVIES`}>
-                <Download className="mr-2 h-4 w-4" /> Download
-              </Link>
-            </Button>
+            {series.cast.map((ct, i) => (
+              <Badge key={i} variant="secondary" className="rounded-full">
+                {ct.name}
+              </Badge>
+            ))}
           </div>
         </div>
       </div>
