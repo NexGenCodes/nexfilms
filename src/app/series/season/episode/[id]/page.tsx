@@ -31,7 +31,7 @@ export default async function EpisodePage(props: { params: Params }) {
 
       <div>
         <div className="flex flex-col md:flex-row gap-6 mb-8">
-          <div className="md:w-1/4">
+          <div className="md:w-1/2">
             <div className="relative aspect-video w-full rounded-lg overflow-hidden mb-8 bg-black">
               {episode.trailerUrl ? (
                 <iframe
@@ -54,8 +54,8 @@ export default async function EpisodePage(props: { params: Params }) {
               )}
             </div>
           </div>
-          <div className="md:w-3/4">
-            <div className=" mb-8">
+          <div className="md:w-1/2">
+            <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2 text-green-500">
                 {episode.number}. {episode.title}
               </h1>
